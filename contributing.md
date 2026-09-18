@@ -26,15 +26,26 @@ The runtime is organized by responsibility:
 
 ```text
 src/
-├── cn/        Tailwind-aware conflict resolution
-├── cv/        variant compilation and execution
-├── cx/        class-value composition
-└── index.ts   public package boundary
+├── cn/
+│   ├── index.ts
+│   └── internal/
+│       ├── compiler/     config → model → tables → source emission
+│       ├── engine/       input composition, hashing, conflict runtime
+│       ├── generated/    checked-in lookup data
+│       ├── factory.ts    internal compiler/runtime bridge
+│       ├── types.ts
+│       └── validators.ts
+├── cv/
+│   ├── index.ts
+│   ├── types.ts
+│   └── internal/         variants, compounds, dense lookup, program runtime
+├── cx/                   canonical class-value grammar and composition
+└── index.ts              public package boundary
 ```
 
-Keep domain-specific implementation inside its domain. Shared behavior should have one owner instead of being copied between domains; for example, `cx` owns the canonical class-value grammar used by `cn` and `cv`.
+Keep domain-specific implementation inside its domain. Shared behavior has one owner instead of being copied between domains: `cx` owns the canonical class-value grammar, `cv` owns variant compilation/execution, and `cn` owns Tailwind-aware conflict resolution.
 
-Generated Tailwind lookup data lives under `src/cn/internal/generated` and must not be edited manually.
+Generated conflict data lives under `src/cn/internal/generated` and must not be edited manually. Compiler authoring machinery remains internal and is tree-shaken from the normal package entrypoint.
 
 ## Public API policy
 

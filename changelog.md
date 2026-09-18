@@ -9,6 +9,7 @@ Initial public foundation for **@obvia/cvx**, a zero-runtime-dependency class to
 * `cn` with the same class-value grammar plus packed Tailwind conflict resolution
 * `VariantProps` for extracting the public variant contract of a `cv` component
 * one public package entrypoint with no exposed compiler, configuration, schema, merge-engine, generated-table, or stylesheet subpaths
+* domain-oriented source layout separating class composition, variant execution, conflict compilation, conflict runtime, and generated data
 * runtime dependency count of zero
 * Bun-first development, testing, benchmarking, and package management
 * `tsdown` builds for ESM and CommonJS with declarations and source maps
