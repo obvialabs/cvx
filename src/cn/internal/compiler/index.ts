@@ -1,8 +1,3 @@
-/**
- * Internal compiler facade for the `cn` domain.
- *
- * @internal
- */
 export { mergeConfigs } from "./config"
 export type {
   ClassGroupDefinition,

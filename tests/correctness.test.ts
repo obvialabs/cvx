@@ -146,6 +146,37 @@ describe("cn", () => {
   test("preserves unknown classes instead of dropping unrecognized input", () => {
     expect(cn("component-root", "plugin:state", "p-2", "p-4")).toBe("component-root plugin:state p-4")
   })
+  test("matches upstream animation classification for built-in and custom names", () => {
+    const cases = [
+      ["animate-in", "animate-out"],
+      ["animate-pulse", "animate-pulse-slow"],
+      ["animate-spin", "animate-pulse"],
+      ["animate-fade-out", "animate-slide-out-down"],
+    ] as const
+
+    expectCallParity(cases, (...values) => cn(...values), (...values) => baselineTwMerge(clsx(...values)))
+  })
+  test("matches upstream deprecated gradient alias behavior", () => {
+    const cases = [
+      ["bg-white", "bg-gradient-to-b"],
+      ["bg-red-500", "bg-gradient-to-r"],
+      ["bg-gradient-to-t", "bg-blue-500"],
+    ] as const
+
+    expectCallParity(cases, (...values) => cn(...values), (...values) => baselineTwMerge(clsx(...values)))
+  })
+  test("matches logical and physical spacing conflict relationships", () => {
+    const cases = [
+      ["ps-2", "pe-2", "px-2.5"],
+      ["pbs-2", "pbe-2", "py-3"],
+      ["ms-2", "me-2", "mx-4"],
+      ["mbs-2", "mbe-2", "my-4"],
+      ["scroll-ps-2", "scroll-pe-2", "scroll-px-4"],
+      ["scroll-pbs-2", "scroll-pbe-2", "scroll-py-4"],
+    ] as const
+
+    expectCallParity(cases, (...values) => cn(...values), (...values) => baselineTwMerge(clsx(...values)))
+  })
 })
 describe("cv", () => {
   const betaReference = betaCva as (config: any) => any
@@ -364,8 +395,8 @@ describe("cx", () => {
     expectCallParity(cases, (...values) => cx(...values), (...values) => legacyCx(...values))
     expectCallParity(cases, (...values) => cx(...values), (...values) => betaCx(...values))
   })
-  test("keeps CVX bigint support as an intentional superset", () => {
-    expect(cx("a", 2n, [3n])).toBe("a 2 3")
+  test("ignores bigint values to preserve clsx runtime parity", () => {
+    expect(cx("a", 2n, [3n])).toBe(clsx("a", 2n, [3n]))
   })
   test("does not resolve Tailwind conflicts because conflict handling belongs to cn", () => {
     expect(cx("p-2", "p-4", "text-sm", "text-lg")).toBe("p-2 p-4 text-sm text-lg")

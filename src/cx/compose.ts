@@ -1,33 +1,33 @@
-/**
- * Runtime implementation of the `cx` domain.
- *
- * Composition is deliberately allocation-light and framework-agnostic. The
- * same primitive is reused by the variant renderer so class-value semantics
- * have a single owner.
- *
- * @internal
- */
-
 import type { ClassComposer, ClassValue } from "./types"
 
 const hasOwn = Object.prototype.hasOwnProperty
 
 /**
- * Appends one class value to an existing output string without allocating an
- * intermediate flattening array. Shared by `cx` and the `cv` render engine.
+ * Append a class value to an existing class string
+ *
+ * **Parameters**
+ * - `output` – Existing space-delimited class string
+ * - `value` – Class value to append
+ *
+ * **Returns**
+ * - `string` - Updated class string
  *
  * @internal
  */
 export function appendClassValue(output: string, value: ClassValue): string {
+  // Ignore falsy values and the boolean sentinel used by conditional expressions
   if (!value || value === true) return output
 
   const type = typeof value
-  if (type === "string" || type === "number" || type === "bigint") {
+
+  // String and numeric class values can be appended without additional normalization
+  if (type === "string" || type === "number") {
     const text = String(value)
     if (!text) return output
     return output ? `${output} ${text}` : text
   }
 
+  // Flatten nested arrays recursively without creating a temporary array
   if (Array.isArray(value)) {
     for (let index = 0; index < value.length; index++) {
       output = appendClassValue(output, value[index])
@@ -35,6 +35,7 @@ export function appendClassValue(output: string, value: ClassValue): string {
     return output
   }
 
+  // Emit own dictionary keys whose values evaluate to true
   if (type === "object") {
     const dictionary = value as Readonly<Record<string, unknown>>
     for (const key in dictionary) {
@@ -48,22 +49,24 @@ export function appendClassValue(output: string, value: ClassValue): string {
 }
 
 /**
- * Composes class values into a normalized space-delimited string.
+ * Compose class values into a normalized space-delimited string
  *
- * Arrays are recursively flattened, object keys are emitted for truthy
- * values, and falsy inputs are ignored. No Tailwind conflict resolution is
- * performed; use `cn` when conflict-aware merging is required.
+ * **Parameters**
+ * - `inputs` – Class values to normalize and concatenate
  *
- * @example
+ * **Usage**
  * ```ts
+ * // "button active"
  * cx("button", active && "active", { disabled: false })
- * // => "button active"
  * ```
  */
 export const cx: ClassComposer = (...inputs): string => {
   let output = ""
+
+  // Append each input directly to keep the hot path allocation-light
   for (let index = 0; index < inputs.length; index++) {
     output = appendClassValue(output, inputs[index])
   }
+
   return output
 }

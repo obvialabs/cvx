@@ -18,11 +18,31 @@ const IS_JSC = "line" in new Error()
 const EXTERNAL = -1
 const DEAD = -1
 
+/**
+ * Create a conflict-resolution engine from compiled Tailwind lookup tables
+ *
+ * The engine prepares conflict adjacency, validator dispatch, literal lookup,
+ * modifier handling, and whole-string caches once. Individual merge calls then
+ * operate against compact typed-array state.
+ *
+ * **Parameters**
+ * - `tables` – Compiled conflict lookup tables
+ * - `validatorImpls` – Runtime implementations for custom validators referenced by the tables
+ * - `options` – Internal cache and Tailwind prefix options
+ *    - `cacheSize` – Maximum whole-string cache size
+ *    - `prefix` – Tailwind v4 utility prefix overriding the compiled table prefix
+ *
+ * **Returns**
+ * An executable conflict engine used by `cn` and internal verification tools
+ *
+ * @internal
+ */
 export const createEngine = (
-  T: Tables,
+  tables: Tables,
   validatorImpls?: ValidatorImpls,
-  options: EngineOptions = {}
+  options: EngineOptions = {},
 ): Engine => {
+  const T = tables
   const {
     GROUP_COUNT,
     edgeStart,
@@ -50,16 +70,14 @@ export const createEngine = (
     orderSensitiveModifiers,
   } = T
 
-  // ---- conflict adjacency row index ---------------------------------------
-  // adjRow[g] / patRow[g] point at each group's target list (or -1). Claims
-  // are tracked in one epoch-stamped hash set keyed (slot, gid) — covering
-  // static and dynamic groups alike — and a kept token walks its adjacency
-  // row to claim the groups it overrides.
+  // Build direct row indexes so conflict groups can resolve their adjacency lists in O(1)
+  // Each kept token claims the groups it overrides through the same epoch-stamped claim set,
+  // regardless of whether the group came from static tables or a dynamic arbitrary property.
   const adjRow = new Int32Array(GROUP_COUNT).fill(-1)
   for (let i = 0; i < adjGid.length; i++) adjRow[adjGid[i]] = i
 
-  // claims per kept token: itself + its adjacency row + postfix pairs
-  // sizes the claim table so it can never fill under any config
+  // Size the claim table from the largest configured fan-out so one merge pass cannot
+  // saturate the open-addressed table and turn conflict checks into unbounded probes.
   let maxAdj = 0
   for (let r = 0; r + 1 < adjStart.length; r++) {
     const n = adjStart[r + 1] - adjStart[r]
@@ -69,7 +87,8 @@ export const createEngine = (
   while (CLAIM_PER_TOKEN < 2 * (1 + maxAdj + patGid.length))
     CLAIM_PER_TOKEN <<= 1
 
-  // per-list gid offsets (lists share op patterns; gids are flat per list)
+  // Build offsets into the flattened validator-group array because multiple validator
+  // lists may reuse the same opcode pattern while targeting different conflict groups.
   const vgStart = new Int32Array(vlistRef.length + 1)
   for (let l = 0; l < vlistRef.length; l++) {
     vgStart[l + 1] =
@@ -80,10 +99,9 @@ export const createEngine = (
   for (let i = 0; i < postfixLookupGroups.length; i++)
     postfixLookupSet[postfixLookupGroups[i]] = 1
 
-  // ---- literal maps (lifted trie subtrees) -------------------------------
-  // (anchorNode, tailString) → group as one open-addressed table; tails
-  // live in the compiled text pool. Probes hash the input span in place —
-  // a tail substring is never materialized.
+  // Build an open-addressed lookup for literal tails lifted out of compacted trie subtrees
+  // The key is `(anchorNode, tailString)`, but probes hash the input span directly so matching
+  // never needs to allocate the candidate tail as a substring.
   const nodeCount = edgeStart.length - 1
   const nodeHasLit = new Uint8Array(nodeCount)
   let litMaxLen = 0
@@ -140,16 +158,15 @@ export const createEngine = (
 
   const cacheSize = options.cacheSize ?? 8192
 
-  // Tailwind v4 prefix (written like a leading variant: `tw:hover:p-4`).
-  // Tokens not starting with `${prefix}:` pass through as external.
+  // Treat the Tailwind v4 prefix like a leading variant, for example `tw:hover:p-4`
+  // Tokens outside the configured prefix are preserved as external classes and never merged.
   const RAW_PREFIX = options.prefix ?? T.prefix ?? ""
   const FULL_PREFIX = RAW_PREFIX === "" ? "" : RAW_PREFIX + ":"
   const FPL = FULL_PREFIX.length
 
-  // ---- span validators ----------------------------------------------------
-  // Opcodes over (input, start, end) spans — no substring, no regex on the
-  // hot path; the complete arbitrary-value
-  // regex's label backtracking. Rare shapes fall back to lazy slice + regex.
+  // Prepare span-based validators so common utility checks avoid substring allocation
+  // Validator opcodes inspect `(input, start, end)` directly; only uncommon shapes fall back
+  // to lazily sliced strings and regular expressions.
   const vCustom = (customValidatorNames ?? []).map((name) => {
     const fn = validatorImpls && validatorImpls[name]
     if (!fn) throw new Error("cn: missing validator " + name)
@@ -165,8 +182,8 @@ export const createEngine = (
   const imageRegex =
     /^(url|image|image-set|cross-fade|element|(repeating-)?(linear|radial|conic)-gradient)\(.+\)$/
 
-  // scratch filled by analyzeArb for the current tail span
-  let aKind = 0 // 0 none, 1 [..], 2 (..)
+  // Reuse one scratch record for arbitrary-value analysis so each token avoids object allocation
+  let aKind = 0 // 0 = plain value, 1 = bracket value, 2 = parenthesized variable
   let aLabelS = -1
   let aLabelE = -1
   let aValS = -1
@@ -178,8 +195,8 @@ export const createEngine = (
     (c >= 48 && c <= 57) ||
     c === 95
 
-  // non-ascii members of js \s (u00a0, u1680, u2000-u200a, u2028/9, u202f,
-  // u205f, u3000, ufeff); only reached for code units >= 0xa0
+  // Check the non-ASCII members of JavaScript `\s` only after the fast ASCII path fails
+  // This covers U+00A0, U+1680, U+2000–U+200A, U+2028/U+2029, U+202F, U+205F, U+3000, and U+FEFF.
   const isUniWS = (c: number): boolean => /\s/.test(String.fromCharCode(c))
 
   const analyzeArb = (input: string, s: number, e: number): void => {
@@ -193,7 +210,7 @@ export const createEngine = (
     else return
     aValS = s + 1
     aValE = e - 1
-    // label: \w[\w-]* directly followed by ':' with non-empty value
+    // Recognize an optional `label:value` prefix only when the label is word/hyphen based
     let p = s + 1
     if (isWordCode(input.charCodeAt(p))) {
       p++
@@ -223,8 +240,8 @@ export const createEngine = (
     return true
   }
 
-  // simple value shapes as regexes on lazy slices (memo-miss path only
-  // the hot arbitrary-value analysis stays span-based in analyzeArb)
+  // Keep complex value-shape regular expressions on the memo-miss path only
+  // Common arbitrary-value analysis remains span-based through `analyzeArb`.
   const fractionRegex = /^\d+(?:\.\d+)?\/\d+(?:\.\d+)?$/
   const tshirtRegex = /^(\d+(\.\d+)?)?(xs|sm|md|lg|xl)$/
   const isNumStr = (v: string) => !!v && !Number.isNaN(Number(v))
@@ -242,8 +259,8 @@ export const createEngine = (
     )
   }
 
-  // ops 10-24: required kind, allowed labels, unlabeled behavior
-  // (0 false, 1 true, 2 length-shape, 3 number, 4 image, 5 shadow)
+  // Opcodes 10–24 encode the required arbitrary-value kind, accepted labels, and
+  // unlabeled fallback behavior: false, true, length, number, image, or shadow.
   const VKIND = [1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2]
   const VLABELS =
     "length|number|number weight|family-name|position percentage|length size bg-size|image url|shadow|length|family-name|position percentage|length size bg-size|image url|shadow|number weight"
@@ -319,9 +336,9 @@ export const createEngine = (
       : orderSensitiveModifiers
   )
 
-  // ---- span interning (contexts + dynamic groups), process lifetime ------
-  // hash buckets hold materialized strings (allocated once per unique span)
-  // resets happen only between merges so ids stay consistent within a pass.
+  // Intern modifier contexts and dynamic groups so repeated spans reuse stable numeric IDs
+  // Materialized strings are allocated once per unique span, and resets happen only between
+  // merge calls so IDs remain consistent throughout a conflict-resolution pass.
   interface InternEntry {
     k: string
     imp: number
@@ -359,8 +376,8 @@ export const createEngine = (
   const MAX_CTX = 4096
 
   const canonicalizeContext = (raw: string, important: boolean): number => {
-    // split raw prefix at top-level ':' (depth-guarded), then segment-sort
-    // while preserving order-sensitive modifier boundaries
+    // Split modifiers only at top-level `:` separators, then sort commutative segments while
+    // preserving boundaries around order-sensitive modifiers.
     const mods = []
     let dB = 0,
       dP = 0,
@@ -405,18 +422,17 @@ export const createEngine = (
   const newDynId = () => nextDynId++
   const ID_LIMIT = 2097152 // 2^21: keeps ctx * 2^21 + gid exact in a double
 
-  // ---- token memo (process lifetime, 2-way set-associative) --------------
-  // full token span → (gid, ctxId, flags); hit verifies chars in place, so
-  // it allocates nothing — unlike a string-keyed cache, which must
-  // materialize the token substring before it can even look it up.
+  // Memoize token classification in a small two-way associative cache shared by the engine
+  // Cache hits verify the original character span in place, avoiding the substring allocation
+  // that a conventional string-keyed cache would require before lookup.
   const TOKEN_TABLE = 8192
   const memoHash = new Int32Array(TOKEN_TABLE)
   const memoStr = new Array(TOKEN_TABLE).fill(null)
   const memoGid = new Int32Array(TOKEN_TABLE)
   const memoCtx = new Int32Array(TOKEN_TABLE)
   const memoFlags = new Uint8Array(TOKEN_TABLE)
-  // second-chance insertion: an occupied way is overwritten only every 4th
-  // colliding miss, so one-shot tokens can't thrash out hot entries
+  // Give occupied cache ways a second chance and overwrite them only on every fourth collision
+  // This keeps one-shot utility strings from immediately evicting frequently reused tokens.
   let memoTick = 0
 
   const memoPut = (
@@ -443,7 +459,7 @@ export const createEngine = (
   }
   const memoReset = () => memoStr.fill(null)
 
-  // ---- per-merge reusable state -------------------------------------------
+  // Reuse merge-state buffers across calls so tokenization and claim tracking stay allocation-light
   let cap = 256
   let tokI32 = [
     new Int32Array(cap),
@@ -461,7 +477,10 @@ export const createEngine = (
       n.set(a)
       return n
     })
-    ;[tokStart, tokEnd, tokGid, tokCtx] = tokI32
+    tokStart = tokI32[0]!
+    tokEnd = tokI32[1]!
+    tokGid = tokI32[2]!
+    tokCtx = tokI32[3]!
     const nf = new Uint8Array(cap)
     nf.set(tokFlags)
     tokFlags = nf
@@ -472,20 +491,19 @@ export const createEngine = (
   let ckptNode = new Int32Array(ckptCap)
   let ckptTail = new Int32Array(ckptCap)
 
-  // no-variant static claims (the dominant case) index an epoch-stamped
-  // array directly by gid — one load to test, one store to claim
+  // Resolve the dominant no-variant static-group case through a direct epoch-stamped array
+  // One load tests whether the group is claimed and one store records a new claim.
   const claim0 = new Int32Array(GROUP_COUNT)
 
-  // unified claim set for the rest (variant contexts, dynamic groups):
-  // epoch-stamped open-addressed (ctxId, gid) keys stored as exact doubles —
-  // ids are bounded per merge by ID_LIMIT
+  // Resolve variant contexts and dynamic groups through one epoch-stamped open-addressed set
+  // `(ctxId, gid)` pairs are encoded as exact doubles, with both IDs bounded by `ID_LIMIT`.
   let CLAIM_TABLE = 2048
   let claimShift = 21 // 32 - log2(CLAIM_TABLE)
   let claimKeys = new Float64Array(CLAIM_TABLE)
   let claimEpochs = new Int32Array(CLAIM_TABLE)
   let epoch = 0
-  // test-and-claim in one probe: returns 1 if (ctx, gid) was already
-  // claimed this merge, else claims it and returns 0
+  // Test and claim a `(context, group)` pair in one probe
+  // Return `1` when the pair was already claimed in this merge, otherwise claim it and return `0`.
   const claimTest = (ctx: number, gid: number): number => {
     if (ctx === 0 && gid < GROUP_COUNT) {
       if (claim0[gid] === epoch) return 1
@@ -504,7 +522,7 @@ export const createEngine = (
     return 0
   }
 
-  // ---- cold resolver (mirrors upstream mergeClassList) -------------------
+  // Resolve an uncached utility through prefix parsing, modifier analysis, trie lookup, and validators
   const resolveAt = (
     input: string,
     bs: number,
@@ -512,7 +530,7 @@ export const createEngine = (
     nodeAt: number,
     ckptAt: number
   ): number => {
-    // arbitrary property: '[prop:...]' → dynamic per-property group
+    // Map arbitrary properties such as `[color:red]` to dynamic groups keyed by property name
     if (
       endPos - bs >= 2 &&
       input.charCodeAt(bs) === 91 &&
@@ -528,19 +546,17 @@ export const createEngine = (
       if (colon === -1 || colon === bs + 1) return EXTERNAL
       return internSpan(dynByHash, input, bs + 1, colon, 0, newDynId)
     }
-    // exact match: automaton at a node with a group id
+    // Prefer an exact automaton match when the final node already owns a conflict group
     if (nodeAt >= 0 && nodeGroup[nodeAt] >= 0) return nodeGroup[nodeAt]
-    // backtrack levels, deepest first: literal-map probe (lifted exact
-    // matches beat validators, exactly as deeper trie paths beat
-    // validators upstream), then the level's validator opcodes
+    // Backtrack from the deepest trie level so lifted literal matches beat validator matches
+    // This preserves the same precedence that deeper literal trie paths have over validators.
     for (let k = ckptAt - 1; k >= 0; k--) {
       const tailStart = ckptTail[k]
       if (tailStart > endPos) continue
       const nodeId = ckptNode[k]
       const tlen = endPos - tailStart
       if (nodeHasLit[nodeId] === 1 && tlen > 0 && tlen <= litMaxLen) {
-        // arbitrary-value tails ('[…]', '(…)') can't match a literal
-        // unless the compiled pool actually contains one
+        // Skip literal probing for arbitrary-value tails unless the compiled pool can contain them
         const c0 = input.charCodeAt(tailStart)
         if (litNoArb === false || (c0 !== 91 && c0 !== 40)) {
           const g = litProbe(nodeId, input, tailStart, endPos)
@@ -564,14 +580,14 @@ export const createEngine = (
     return EXTERNAL
   }
 
-  // ---- the merge -----------------------------------------------------------
+  // Merge one normalized class string while preserving surviving token order
   const mergeClassList = (input: string): string => {
     const n = input.length
     let tokenCount = 0
     let totalTokenChars = 0
     let sawNonSpaceWS = false
 
-    // bounded-growth resets, between merges only
+    // Reset bounded-growth intern tables only between merge calls so in-flight IDs never change
     if (nextCtxId > MAX_CTX || ctxByHash.size > MAX_CTX) {
       ctxByHash = new Map()
       ctxByCanon = new Map()
@@ -593,8 +609,7 @@ export const createEngine = (
         continue
       }
       const ts = i
-      // the scan already reads every token char, so the memo hash rides
-      // along as a fused FNV accumulator — no second pass per token
+      // Fold the memo hash into token scanning so classification never needs a second pass over characters
       let th = 0
       while (i < n) {
         c = input.charCodeAt(i)
@@ -604,7 +619,7 @@ export const createEngine = (
             sawNonSpaceWS = true
             break
           }
-          // control chars 0-8/14-31 are token chars (parity)
+          // Preserve control characters outside JavaScript whitespace as ordinary token content
         } else if (c >= 0xa0 && isUniWS(c)) {
           sawNonSpaceWS = true
           break
@@ -623,7 +638,7 @@ export const createEngine = (
       th ^= Math.imul(len, 0x9e3779b1)
       const h = (th ^ (th >>> 15)) | 0
 
-      // 2-way set-associative memo probe: hit → done, zero allocation
+      // Probe both token-memo ways before parsing so a hit completes with zero allocation
       const way0 = h & (TOKEN_TABLE - 1) & ~1
       {
         let hitAt = -1
@@ -641,8 +656,7 @@ export const createEngine = (
           hitAt = way0 | 1
         if (hitAt >= 0) {
           const s = memoStr[hitAt]
-          // in-place byte verify at every length: a slice + '==='
-          // would allocate the substring the memo exists to avoid
+          // Verify token characters in place because slicing for `===` would allocate on the cache-hit path
           let ok = true
           for (let k = 0; k < len; k++) {
             if (s.charCodeAt(k) !== input.charCodeAt(ts + k)) {
@@ -659,7 +673,7 @@ export const createEngine = (
         }
       }
 
-      // ===== memo miss: optional prefix gate, then structural parse ===
+      // Parse the configured prefix and utility structure only after the token memo misses
       let pts = ts
       if (FPL !== 0) {
         if (te - ts <= FPL || !input.startsWith(FULL_PREFIX, ts)) {
@@ -693,7 +707,7 @@ export const createEngine = (
 
       const modStart = lastColon >= pts ? lastColon + 1 : pts
 
-      // important modifier: suffix '!' first (v4), else legacy prefix
+      // Recognize the Tailwind v4 `!` suffix first, then fall back to the legacy prefix form
       let bs = modStart
       let be = te
       let important = false
@@ -707,15 +721,14 @@ export const createEngine = (
         prefixShift = 1
       }
 
-      // postfix candidate — replicates upstream exactly, including the
-      // prefix-'!' index-shift quirk (end includes '/' when shifted)
+      // Preserve upstream postfix-modifier semantics, including the legacy prefix-`!` index shift
       let postfixEnd = -1
       if (lastSlash > modStart) {
         postfixEnd = lastSlash + prefixShift
         if (postfixEnd >= be) postfixEnd = -1
       }
 
-      // ===== pass B: feed base through the radix automaton ============
+      // Feed the base utility through the radix automaton after structural parsing completes
       let feedStart = bs
       if (be - bs > 1 && input.charCodeAt(bs) === 45) feedStart = bs + 1 // negative values
 
@@ -837,7 +850,7 @@ export const createEngine = (
       memoPut(way0, input, ts, te, h, gid, ctxId, flags)
     }
 
-    // ===== fast paths =====================================================
+    // Return immediately for empty and single-token inputs because no conflict pass is required
     if (tokenCount === 0) return ""
     if (tokenCount === 1) {
       return tokStart[0] === 0 && tokEnd[0] === n
@@ -845,10 +858,9 @@ export const createEngine = (
         : input.slice(tokStart[0], tokEnd[0])
     }
 
-    // ===== backward claim pass ============================================
-    // worst-case claims = tokens x CLAIM_PER_TOKEN, where CLAIM_PER_TOKEN is
-    // derived from the tables' real max fan-out; keep load factor under 50%
-    // so probes stay short and the table can never fill
+    // Walk tokens backward so the last conflicting utility wins, matching Tailwind semantics
+    // Size the claim table from the compiled maximum fan-out and keep load below 50% so probes
+    // stay short and the open-addressed table cannot fill during this merge.
     if (tokenCount * CLAIM_PER_TOKEN > CLAIM_TABLE) {
       while (tokenCount * CLAIM_PER_TOKEN > CLAIM_TABLE) {
         CLAIM_TABLE <<= 1
@@ -859,9 +871,8 @@ export const createEngine = (
     }
     if (nextCtxId >= ID_LIMIT || nextDynId >= ID_LIMIT)
       throw new Error("cn: too many distinct classes in one merge")
-    // epoch is stored in Int32Arrays, so it has to truncate the same way; on
-    // the wrap through 0 the tables must be cleared or unclaimed slots read
-    // as claimed
+    // Keep the epoch in signed 32-bit form to match the backing arrays
+    // When it wraps through zero, clear the arrays so stale slots cannot look claimed.
     epoch = (epoch + 1) | 0
     if (epoch === 0) {
       claim0.fill(0)
@@ -883,8 +894,7 @@ export const createEngine = (
       }
       keep[t] = 1
       if (gid < GROUP_COUNT) {
-        // claim overridden groups: base adjacency, plus the flat
-        // postfix-extra pairs (conflictingClassGroupModifiers)
+        // Claim both ordinary conflicts and postfix-specific conflict pairs for the kept group
         const r = adjRow[gid]
         if (r >= 0) {
           for (let k = adjStart[r]; k < adjStart[r + 1]; k++)
@@ -898,13 +908,12 @@ export const createEngine = (
       }
     }
 
-    // ===== emission =======================================================
+    // Emit surviving utilities after the backward conflict pass has finalized the keep mask
     if (!didDrop && !sawNonSpaceWS && n === totalTokenChars + tokenCount - 1) {
       return input // already normalized, nothing dropped
     }
-    // emit contiguous runs of kept tokens as single slices: fewer
-    // allocations, and the result is a flat string (cheap to hash when it
-    // lands in a downstream cache) instead of a cons-string chain
+    // Emit contiguous kept runs as single slices to reduce allocations and produce a flat string
+    // Flat results are cheaper to hash when they later enter the whole-string cache.
     let out = ""
     let t = 0
     while (t < tokenCount) {
@@ -931,15 +940,10 @@ export const createEngine = (
     return out
   }
 
-  // ---- whole-string cache (2-generation, doorkeeper-admitted) -------------
-  // A string enters the cache only on its second sighting, tracked by an
-  // epoch-stamped filter keyed with an O(1) positional hash. One-shot
-  // strings (SSR streams) skip both the insert *and* the cache lookup, so
-  // cache-hostile traffic pays a few sampled chars instead of an O(n) hash
-  // per call, and large recurring working sets still warm fully.
-  // 16384 slots × two generations = 128 KB; sized so real-repo working
-  // sets (~10k distinct strings at the corpus p95) fit without exact-tag
-  // slot conflicts evicting each other's sightings
+  // Admit whole strings to the result cache only after their second sighting
+  // A two-generation doorkeeper keeps one-shot SSR traffic out of the cache while allowing
+  // recurring working sets to warm without paying a full-string hash on every first sighting.
+  // Two 16,384-slot generations use 128 KB and cover the observed p95 corpus working set.
   const DOOR_SIZE = 16384
   const door = new Int32Array(DOOR_SIZE * 2) // two generations, base-flipped
   let doorBase = 0
@@ -950,29 +954,21 @@ export const createEngine = (
   let prevCacheMap = new Map<string, string>()
   let cacheCount = 0
   let doorMarks = 0
-  // two-generation rotation: sightings survive mark pressure instead of
-  // being wiped, so recurring working sets larger than the filter still
-  // accumulate the two sightings admission needs (a full wipe starves them
-  // forever — measured 6-15x slower on real-repo corpus replays)
-  // the previous generation's epoch is always doorEpoch - 1: rotation
-  // advances both together, so it needs no variable of its own
-  // no wrap guard on the epoch: a wrap needs 2^32 rotations, and even then
-  // a stale match costs one wasted insert, never a wrong result
+  // Rotate two generations instead of clearing sightings so larger recurring working sets can
+  // accumulate the two observations required for admission. A full wipe measured 6–15× slower
+  // on corpus replays because hot entries repeatedly lost their first sighting.
+  // The previous generation always uses `doorEpoch - 1`; a 32-bit epoch wrap can only cause
+  // one unnecessary cache insertion, never an incorrect merge result.
   const rotateDoor = () => {
     doorBase ^= DOOR_SIZE
     doorEpoch = (doorEpoch + 1) | 0
     doorMarks = 0
   }
-  // doorkeeper: a string seen once in the current or previous generation
-  // admits on this sighting. Slots store the full 32-bit hash (xor epoch),
-  // so a slot collision must match all hash bits to count as a sighting —
-  // unique streams (SSR) almost never false-admit, which would cost a
-  // dictionary insert plus generation churn per call. Stale slots from two
-  // generations back self-invalidate via the epoch xor. Slot bits never
-  // overlap the base bit, so the sibling generation's slot is one xor away.
+  // Admit a string when its full 32-bit hash was seen in the current or previous generation
+  // XORing the stored hash with the epoch self-invalidates older generations and makes false
+  // admission from slot collisions extremely unlikely for cache-hostile one-shot streams.
   const mergeCached = (input: string): string => {
-    // hit path first: warm, identity-stable strings stay at one
-    // object-property read with a V8-cached hash
+    // Check the warm result cache first so stable strings resolve with one property read on V8
     let merged = cache[input]
     if (merged !== undefined) return merged
     const hash = hashSampledSpan(input, 0, input.length)
@@ -1002,11 +998,9 @@ export const createEngine = (
     }
     return merged
   }
-  // same as mergeCached over Maps: JSC looks up a string key in a
-  // dictionary-mode object in ~21 ns and a fresh key in ~220 ns, where a Map
-  // takes 6 and 75 (V8 is the reverse, 5 vs 18 on a hit, so it keeps the
-  // dictionary above). Kept as a copy rather than an accessor layer, which
-  // cost V8 5% on every hit.
+  // Use a Map-backed copy for JavaScriptCore because its measured string-key lookup profile
+  // favors Map over dictionary-mode objects, while V8 favors the object-backed path above.
+  // Keeping the hot bodies separate avoids the accessor indirection that regressed V8 hits.
   const mergeCachedMap = (input: string): string => {
     let merged = cacheMap.get(input)
     if (merged !== undefined) return merged
@@ -1037,11 +1031,9 @@ export const createEngine = (
     }
     return merged
   }
-  // a string that was just built cannot be cached by identity, and a
-  // never-seen key is the expensive dictionary case (V8 hashes and
-  // internalizes it: ~200 ns at 17 chars, ~1.1 µs at 360). The doorkeeper
-  // answers "never seen" in O(1) instead, so the caller can merge a
-  // one-shot string uncached and skip caching it anywhere
+  // Detect first-sighting joined strings before touching the expensive whole-string cache
+  // Newly constructed strings cannot benefit from identity reuse, so the doorkeeper lets callers
+  // merge one-shot inputs uncached and reserve cache insertion for repeated values.
   const seenBefore = (input: string): boolean => {
     const hash = hashSampledSpan(input, 0, input.length)
     const slot = (hash & (DOOR_SIZE - 1)) + doorBase
@@ -1054,11 +1046,8 @@ export const createEngine = (
     if (++doorMarks > DOOR_SIZE) rotateDoor()
     return false
   }
-  // JSC will not inline mergeCached with the doorkeeper body in it, so it
-  // gets a two-line hit front that only falls through to the full function
-  // on a miss (the repeated lookup there rides the hash the front just
-  // cached). V8 inlines the full closure and loses ~15% on long strings
-  // with the body outlined, so it uses mergeCached directly.
+  // Keep JavaScriptCore's cache-hit front small enough to inline, while V8 uses the full closure
+  // directly because outlining the body measured slower for long strings on V8.
   const mergeString =
     cacheSize === 0
       ? mergeClassList

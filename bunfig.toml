@@ -1,5 +1,5 @@
 [test]
-# Coverage is requested explicitly through `bun run test:coverage`; ordinary
+# Coverage is requested explicitly through `bun run coverage`; ordinary
 # test commands stay fast without a global coverage toggle. Do not set
 # `coverage = false` here: Bun treats an explicit false value as authoritative
 # and it suppresses the CLI `--coverage` flag as well.

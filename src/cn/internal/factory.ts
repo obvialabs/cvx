@@ -1,23 +1,13 @@
-/**
- * Internal factory layer for the `cn` domain.
- *
- * CVX does not expose configuration helpers publicly. These factories connect configuration compilation to the runtime engine for
- * differential tests and internal tooling without expanding the npm API
- * surface.
- *
- * @internal
- */
-
-import { compileToTables } from "./compiler/index"
+import { compileToTables } from "./compiler"
 import {
   mergeConfigs,
   type CnConfig,
   type ClassGroupDefinition,
   type CnConfigExtension,
   type CnConfigurationInput,
-} from "./compiler/config"
+} from "./compiler"
 import { getDefaultCnConfig } from "./generated/default-config"
-import { createEngine } from "./engine/index"
+import { createEngine } from "./engine"
 import { wrapComposer } from "./engine/compose"
 import type { CnFunction, Engine } from "./types"
 
@@ -34,13 +24,16 @@ export type {
   DefaultThemeGroupIds,
 } from "./generated/default-config"
 
-/** Reference a theme scale from a class-group definition. */
+/**
+ * Create an internal theme-scale reference for a class-group definition
+ *
+ * **Parameters**
+ * - `key` – Theme scale name referenced by the class-group definition
+ */
 export const fromTheme = (key: string): { $t: string } => ({ $t: key })
 
 /**
- * Marker-form validators for custom class groups. Known markers compile to
- * allocation-free span opcodes; function validators remain available to
- * internal tooling when a custom predicate is unavoidable.
+ * Validator markers understood by the internal conflict compiler
  */
 export const validators = {
   isAny: { $v: "isAny" },
@@ -70,13 +63,19 @@ export const validators = {
   isArbitraryVariableWeight: { $v: "isArbitraryVariableWeight" },
 } as const
 
+/**
+ * Determine whether a configuration input is already a complete compiler config
+ */
 const isFullConfig = (input: object): input is CnConfig =>
   "classGroups" in input &&
   "theme" in input &&
   "conflictingClassGroups" in input
 
+/**
+ * Normalize an internal configuration input into a complete compiler config
+ */
 const resolveConfig = (
-  input?: CnConfigurationInput
+  input?: CnConfigurationInput,
 ): { config: CnConfig; cacheSize?: number } => {
   if (input === undefined) return { config: getDefaultCnConfig() }
   if (typeof input === "function")
@@ -88,6 +87,9 @@ const resolveConfig = (
   }
 }
 
+/**
+ * Compile one internal configuration and create its executable merge engine
+ */
 const buildEngine = (input?: CnConfigurationInput): Engine => {
   const { config, cacheSize } = resolveConfig(input)
   const { tables, validatorImpls, prefix } = compileToTables(config)
@@ -95,10 +97,17 @@ const buildEngine = (input?: CnConfigurationInput): Engine => {
 }
 
 /**
- * Creates an isolated conflict-aware composer for internal verification and
- * tooling. Compilation is lazy and never participates in the public root API.
+ * Create an isolated conflict-aware class composer from internal configuration
  *
- * @internal
+ * Compilation is deferred until the first call so tests that only inspect the
+ * factory do not pay table-construction cost. This function is not part of the
+ * public package surface.
+ *
+ * **Parameters**
+ * - `input` – Full config, incremental extension, or config transform
+ *
+ * **Returns**
+ * - `*` - A `cn`-compatible class composer backed by the configured conflict engine
  */
 export const createConfiguredCn = (
   input?: CnConfigurationInput,
@@ -112,9 +121,13 @@ export const createConfiguredCn = (
 }
 
 /**
- * Creates the lower-level string merge form used by differential tests.
+ * Create an isolated low-level merge function from internal configuration
  *
- * @internal
+ * **Parameters**
+ * - `input` – Full config, incremental extension, or config transform
+ *
+ * **Returns**
+ * - `*` - A low-level merge function accepting the engine's string/array grammar
  */
 export const createConfiguredMerge = (
   input?: CnConfigurationInput,

@@ -1,80 +1,62 @@
 {
-  "type": "module",
-  "name": "@obvia/cvx",
-  "description": "High-performance class variants, class composition, and Tailwind-aware conflict resolution for modern TypeScript applications.",
-  "keywords": [
-    "obvia",
-    "class",
-    "className",
-    "variants",
-    "css",
-    "tailwindcss",
-    "cva",
-    "clsx",
-    "tailwind-merge",
-    "classnames",
-    "cn",
-    "cx",
-    "cv"
-  ],
-  "license": "MIT",
-  "homepage": "https://obvia.studio/",
-  "version": "0.1.0",
-  "author": {
-    "name": "Selçuk Çukur",
-    "email": "hello@selcukcukur.me",
-    "url": "https://selcukcukur.me"
+  "type"            : "module",
+  "name"            : "@obvia/cvx",
+  "description"     : "Type-safe class variants, composition, and Tailwind conflict resolution — up to 30× faster.",
+  "keywords"        : ["obvia", "class", "className", "variants", "css", "tailwindcss", "cva", "clsx", "tailwind-merge", "classnames", "cn", "cx", "cv"],
+  "license"         : "MIT",
+  "homepage"        : "https://obvia.studio/",
+  "version"         : "0.1.0",
+
+  "author"          : {
+    "name"  : "Selçuk Çukur",
+    "email" : "hello@selcukcukur.me",
+    "url"   : "https://selcukcukur.me"
   },
-  "bugs": {
-    "email": "security@obvia.dev",
-    "url": "https://github.com/obvialabs/cvx/issues"
+
+  "bugs"            : {
+    "email" : "security@obvia.dev",
+    "url"   : "https://github.com/obvialabs/obvia/issues"
   },
-  "scripts": {
-    "clean": "bun -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true }); rmSync('coverage', { recursive: true, force: true })\"",
-    "build": "tsdown",
-    "dev": "tsdown --watch",
-    "check": "tsc -p tsconfig.json",
-    "test": "bun run test:unit && bun run test:behavior && bun run test:property && bun run test:guard && bun run test:type",
-    "test:all": "bun run test && bun run test:performance",
-    "test:unit": "bun test tests/unit.test.ts",
-    "test:behavior": "bun test tests/behavior.test.ts",
-    "test:property": "bun test tests/property.test.ts",
-    "test:guard": "bun test tests/guard.test.ts",
-    "test:type": "bun test tests/type.test.ts",
-    "test:performance": "bun test tests/performance.test.ts",
-    "test:coverage": "bun test tests/unit.test.ts tests/behavior.test.ts tests/property.test.ts --coverage",
-    "bench": "bun tests/compare.bench.ts",
-    "pack": "bun run build && bun pm pack"
+
+  "scripts"         : {
+    "clean"             : "bun -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true }); rmSync('coverage', { recursive: true, force: true })\"",
+    "build"             : "tsdown",
+    "dev"               : "tsdown --watch",
+    "check"             : "tsc -p tsconfig.json",
+    "test"              : "bun test tests",
+    "coverage"          : "bun test tests --coverage",
+    "bench"             : "bun tests/compare.bench.ts",
+    "pack"              : "bun run build && bun pm pack"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/obvialabs/cvx.git"
+
+  "types"           : "./dist/index.d.ts",
+
+  "devDependencies" : {
+    "@types/bun"                : "^1.4.2",
+    "class-variance-authority"  : "^0.7.1",
+    "clsx"                      : "^2.1.1",
+    "cva"                       : "^1.0.0-beta.12",
+    "tailwind-merge"            : "^3.7.0",
+    "tsdown"                    : "^0.23.0",
+    "typescript"                : "^7.0.2"
   },
-  "packageManager": "bun@1.4.2",
-  "files": [
-    "dist",
-    "license.md",
-    "readme.md"
-  ],
-  "devDependencies": {
-    "@types/bun": "1.4.2",
-    "class-variance-authority": "0.7.1",
-    "clsx": "2.1.1",
-    "cva": "1.0.0-beta.12",
-    "tailwind-merge": "3.6.0",
-    "tsdown": "0.23.0",
-    "typescript": "6.0.3"
-  },
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+
+  "exports"         : {
+    "." : {
+      "types"   : "./dist/index.d.ts",
+      "import"  : "./dist/index.js",
+      "require" : "./dist/index.cjs"
     }
   },
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
+  "files"           : ["dist", "license.md", "readme.md"],
+
+  "packageManager"  : "bun@1.4.2",
+  "publishConfig"   : {
+    "access"      : "public",
+    "provenance"  : true
+  },
+  "repository"      : {
+    "type"  : "git",
+    "url"   : "git+https://github.com/obvialabs/cvx.git"
   }
 }

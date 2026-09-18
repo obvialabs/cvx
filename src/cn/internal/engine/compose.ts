@@ -61,59 +61,108 @@ const joinArgs = (args: IArguments, fullGrammar: boolean): string => {
   return s
 }
 
-/** Joins string/array merge inputs without object-grammar expansion. */
+/**
+ * Join low-level merge inputs without expanding dictionary-style class values
+ *
+ * **Parameters**
+ * - `inputs` – Strings, nested arrays, and falsy values accepted by the conflict engine
+ *
+ * **Returns**
+ * A normalized space-delimited class string ready for conflict resolution
+ *
+ * @internal
+ */
 export const joinMergeInputs = function (): string {
   return joinArgs(arguments, false)
 } as (...inputs: MergeInput[]) => string
 
-/** Normalizes the complete CVX class-value grammar without conflict merging. */
+/**
+ * Normalize the complete CVX class-value grammar without resolving conflicts
+ *
+ * **Parameters**
+ * - `inputs` – Class values using the same grammar accepted by public `cx` and `cn`
+ *
+ * **Returns**
+ * A normalized space-delimited class string
+ *
+ * @internal
+ */
 export const composeClassValues = function (): string {
   return joinArgs(arguments, true)
 } as (...inputs: ClassValue[]) => string
 
-// Wraps a merge function with CVX class-value normalization and argument caching.
+/**
+ * Cached argument tuple used by the class-value composition front end
+ *
+ * @internal
+ */
 interface ArgEntry {
-  /** merged result */
+  /**
+   * Conflict-resolved class string for this argument tuple
+   */
   r: string
-  /** truthy arg count (=== a.length, denormalized for the unrolled probes) */
+  /**
+   * Number of truthy arguments represented by the entry
+   */
   t: number
-  /** first three truthy args, '' padded — monomorphic fields so the arity
-   *  fronts verify without an array indirection */
+  /**
+   * First truthy argument stored directly for the unrolled hot-path probes
+   */
   a0: string
+
+  /**
+   * Second truthy argument stored directly for the unrolled hot-path probes
+   */
   a1: string
+
+  /**
+   * Third truthy argument stored directly for the unrolled hot-path probes
+   */
   a2: string
-  /** the truthy string args, in order (identity-compared; generic paths) */
+  /**
+   * Truthy string arguments retained for generic-arity identity comparisons
+   */
   a: string[]
-  /** the entry that followed this one last time (sequence prediction) */
+  /**
+   * Entry that followed this tuple during the previous render sequence
+   */
   n: ArgEntry | null
 }
 
+/**
+ * Wrap a normalized-string merge function with CVX class-value composition and argument caching
+ *
+ * Stable string arguments are compared by identity before the wrapper allocates
+ * a joined string. Repeated render sequences retain their most likely next
+ * tuple so common component call patterns can bypass bucket lookups entirely.
+ *
+ * **Parameters**
+ * - `mergeString` – Conflict resolver for one normalized class string
+ * - `fresh` – Optional first-sighting hooks used to avoid caching one-shot joined strings
+ *
+ * **Returns**
+ * A `cn`-compatible class composer accepting the complete CVX class-value grammar
+ *
+ * @internal
+ */
 export const wrapComposer = (
   mergeString: (input: string) => string,
-  fresh?: FreshMergeEngine
+  fresh?: FreshMergeEngine,
 ): CnFunction => {
-  // without an engine's doorkeeper every join counts as seen and is cached
+  // Treat every joined value as previously seen when no doorkeeper is available
   const seenBefore = fresh === undefined ? () => true : fresh.seenBefore
   const mergeUncached = fresh === undefined ? mergeString : fresh.mergeUncached
-  // arg-identity cache: repeated calls whose truthy args are the same string
-  // *instances* (stable JSX literals — the dominant component shape) skip
-  // the re-join and the O(n) hash of the fresh joined string. Only engages
-  // when every truthy arg is a string: objects/arrays are mutable at the
-  // same identity, so they always take the full resolve path.
-  //
-  // Render loops replay call *sequences*, not just calls, so each entry also
-  // remembers which entry came next last time. When the prediction verifies
-  // (pure identity compares), the call skips even the bucket lookup.
+  // Cache argument identities so stable JSX literals can skip both re-composition and hashing
+  // Mutable arrays and objects still take the normalization path before they become cacheable.
+  // Each cache entry also remembers the tuple that followed it so repeated render sequences can
+  // bypass bucket lookup when the call order is predictable.
   let argCache = new Map<string, ArgEntry[]>()
   let prevArgCache = new Map<string, ArgEntry[]>()
   let argCount = 0
   let lastHit: ArgEntry | null = null
 
-  // unrolled truthy-sequence verify for arity ≤ 3, against the entry's
-  // monomorphic fields. Arity-2 calls pass '' as v2: a falsy pad skips the
-  // slot, so the same code serves both arities. Non-string truthy args can
-  // never strict-equal a string field, so they fail here and take the
-  // resolve path below.
+  // Probe up to three truthy arguments through monomorphic fields before using the generic array path
+  // Falsy padding lets the same probe cover smaller arities without allocating a temporary list.
   const match3 = (
     e: ArgEntry,
     v0: ClassValue,
@@ -136,9 +185,7 @@ export const wrapComposer = (
     return k === e.t
   }
 
-  // Generic path for any arity: probe cached argument identities before resolving
-  // non-string args, bucket lookup, insert, chain update
-  // loop-form verify for any arity (identity compares; non-strings never match)
+  // Use the generic identity path for larger arities and values that require normalization
   const matchN = (e: ArgEntry, vals: ClassValue[]): boolean => {
     const ea = e.a
     let k = 0
@@ -170,9 +217,7 @@ export const wrapComposer = (
       let v = vals[i]
       if (!v) continue
       if (typeof v !== "string") {
-        // objects and arrays resolve in place and ride the string path: a
-        // one-key object resolves to that key string itself, whose identity
-        // is stable across renders, so the arg cache still hits
+        // Normalize structured class values once and keep the result available for later cache probes
         v = vals[i] = resolveValue(v as ClassValue, true)
         if (!v) continue
         hasResolvedValue = true
@@ -184,10 +229,9 @@ export const wrapComposer = (
       truthy++
     }
     if (truthy === 0) return ""
-    if (truthy === 1) return mergeString(first) // cheap path; chain untouched
+    if (truthy === 1) return mergeString(first) // Preserve the prediction chain for the single-value fast path
     if (hasResolvedValue) {
-      // the probes above saw the raw objects; retry them over the resolved
-      // strings before paying for the bucket walk
+      // Retry the prediction probes after normalization before scanning an argument bucket
       if (pred !== null && matchN(pred, vals)) {
         lastHit = pred
         return pred.r
@@ -198,7 +242,7 @@ export const wrapComposer = (
     let bucket = argCache.get(first)
     if (bucket === undefined) {
       bucket = prevArgCache.get(first)
-      if (bucket !== undefined) argCache.set(first, bucket) // promote
+      if (bucket !== undefined) argCache.set(first, bucket) // Promote a previous-generation bucket on reuse
     }
     let hit: ArgEntry | null = null
     if (bucket !== undefined) {
@@ -224,9 +268,8 @@ export const wrapComposer = (
         joined += " " + (v as string)
         a.push(v as string)
       }
-      // a first sighting is merged straight through: no dictionary lookup
-      // on a fresh key, no cache entry anywhere, chain left untouched. A
-      // repeat pays the lookup once and caches like before.
+      // Keep a first-seen joined string out of the whole-string cache
+      // A repeated value pays the lookup once on its second sighting and then follows the normal cache path.
       if (!seenBefore(joined)) return mergeUncached(joined)
       hit = {
         r: mergeString(joined),
@@ -238,15 +281,13 @@ export const wrapComposer = (
         n: null,
       }
       if (bucket === undefined) argCache.set(first, (bucket = []))
-      // a component's base string is the first arg at every usage site, so
-      // one key can carry dozens of tuples (54 in the largest corpus repo,
-      // more once per-site className props count); a tight cap evicts them
-      // faster than the sequence chain can learn them, at ~40x per call
+      // Keep enough tuples per base class for realistic component call sites
+      // Large call sites can produce dozens of variants for one leading class, so a tight cap would evict
+      // tuples faster than the sequence predictor can learn them.
       if (bucket.length >= 256) bucket.shift()
       bucket.push(hit)
-      // two-generation rotation: a full generation ages out wholesale
-      // instead of clearing everything; hot buckets get promoted on use,
-      // so replayed sequences survive rotation and the chain stays warm
+      // Rotate cache generations instead of clearing all tuples at once
+      // Reused buckets are promoted into the current generation so hot render sequences stay warm.
       if (++argCount > 1000) {
         argCount = 0
         prevArgCache = argCache
@@ -258,46 +299,39 @@ export const wrapComposer = (
     return hit.r
   }
 
-  // A lone array follows the same flattening semantics as variadic input, so it takes
-  // the arg path and its stable element identities hit the cache
+  // Route a lone array through the same identity-cache path as variadic input
+  // Stable element identities can then hit the same tuple cache instead of forcing whole-array treatment.
   const mergeSingleValue = (value: ClassValue): string =>
     Array.isArray(value)
       ? resolveArgs(value.slice(), false)
       : mergeString(resolveValue(value, true))
 
-  // named params make the hot path three register reads instead of three
-  // `arguments` element loads; modules are strict, so params never alias
-  // `arguments` (still used for arity and the 4+ overflow copy). Arity 2
-  // rides the same branch as 3: an absent v2 is undefined, and a falsy pad
-  // behaves identically to '' through the probes and the resolve path.
+  // Keep the first three values as named parameters so the common path uses direct register reads
+  // `arguments` remains available for arity detection and the uncommon 4+ path. Two arguments share the
+  // three-argument probe because an absent third value behaves like the other falsy padding values.
   return function (v0?: ClassValue, v1?: ClassValue, v2?: ClassValue): string {
     const nArgs = arguments.length
     if ((nArgs | 1) === 3) {
-      // arity 2 or 3
+      // Handle the dominant two- and three-argument forms without materializing an argument array
       const lh = lastHit
       if (lh !== null) {
-        // sequence prediction: does this call repeat what followed
-        // last time?
+        // Probe the tuple that followed the previous hit before scanning the full bucket
         const pred = lh.n
         if (pred !== null && match3(pred, v0, v1, v2)) {
           lastHit = pred
           return pred.r
         }
-        // self-repeat: the same call site firing again immediately.
-        // Probed rather than stored as a self-link so an entry's
-        // learned successor is never clobbered — a doubled site
-        // (A, A, B) predicts all three calls: A→B via .n, the
-        // repeat via this probe.
+        // Detect immediate self-repeats without replacing the learned successor link
+        // Keeping the repeat as a probe instead of a self-link preserves sequences such as A, A, B:
+        // the repeated A resolves here while A can still predict B through its successor pointer.
         if (lh !== pred && match3(lh, v0, v1, v2)) return lh.r
       }
       return resolveArgs([v0, v1, v2], true)
     }
     if (nArgs === 1)
       return typeof v0 === "string" ? mergeString(v0) : mergeSingleValue(v0)
-    // 4+ arity: probe predictions in place over `arguments` (indexed
-    // reads only, so it never materializes) — a predicted render-loop
-    // call allocates nothing. Only a genuine miss copies into an array
-    // for the resolve path.
+    // Probe four-or-more-argument predictions directly from `arguments` before allocating an array
+    // A predicted render-loop call therefore remains allocation-free; only a genuine miss copies values.
     const lh = lastHit
     if (lh !== null) {
       const pred = lh.n
