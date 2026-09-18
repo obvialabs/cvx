@@ -7,7 +7,7 @@ on:
   # metadata changes on the default branch.
   push:
     branches:
-      - master
+      - main
     paths:
       - "src/**"
       - "tests/**"

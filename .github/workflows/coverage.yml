@@ -6,7 +6,7 @@ on:
   # Measure executable CVX source coverage on the default branch.
   push:
     branches:
-      - master
+      - main
     paths:
       - "src/**"
       - "tests/unit/**"

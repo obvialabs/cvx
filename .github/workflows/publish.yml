@@ -75,7 +75,7 @@ jobs:
       - name: Check source types
         run: bun run check
 
-      # Build the configured ESM/CJS runtimes, declarations, maps, and CSS asset.
+      # Build the configured ESM/CJS runtimes, declarations, and source maps.
       - name: Build package
         run: bun run build
 

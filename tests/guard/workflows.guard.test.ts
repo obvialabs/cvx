@@ -6,7 +6,7 @@ describe("workflow guard", () => {
   test("contains no stale package or Collections references", async () => {
     for (const file of files) {
       const source = await Bun.file(`.github/workflows/${file}`).text();
-      expect(source).not.toContain("@obvia/cv\n");
+      expect(source.match(/@obvia\/cv(?!x)/g)).toBeNull();
       expect(source).not.toContain("@obvia/collections");
       expect(source).not.toContain("Collections");
     }

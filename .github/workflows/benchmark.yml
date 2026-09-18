@@ -6,7 +6,7 @@ on:
   # Run benchmarks when CVX runtime or benchmark behavior changes on the default branch.
   push:
     branches:
-      - master
+      - main
     paths:
       - "src/**"
       - "bench/**"
@@ -68,7 +68,7 @@ jobs:
         run: |
           {
             echo "CVX benchmark environment"
-            echo "package=@obvia/cv"
+            echo "package=@obvia/cvx"
             echo "commit=${GITHUB_SHA}"
             echo "runner=${RUNNER_OS}/${RUNNER_ARCH}"
             echo "image=ubuntu-24.04"
@@ -98,7 +98,7 @@ jobs:
         shell: bash
         run: |
           {
-            echo "## @obvia/cv benchmark"
+            echo "## @obvia/cvx benchmark"
             echo
             echo '```text'
             cat benchmark-results.txt
