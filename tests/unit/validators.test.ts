@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import * as validators from "../../src/merge/validators";
+import * as validators from "../../src/cn/internal/validators";
 
 describe("merge validators", () => {
   test("recognizes scalar numeric forms", () => {

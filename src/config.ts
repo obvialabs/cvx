@@ -12,7 +12,7 @@ export {
   fromTheme,
   mergeConfigs,
   validators,
-} from "./merge/config.js";
+} from "./cn/internal/configuration.js";
 
 export type {
   CnConfig,
@@ -21,4 +21,4 @@ export type {
   CreateCnInput,
   DefaultClassGroupIds,
   DefaultThemeGroupIds,
-} from "./merge/config.js";
+} from "./cn/internal/configuration.js";

@@ -1,4 +1,4 @@
-export { cn, twJoin, twMerge } from "./cn";
+export { cn, twJoin, twMerge } from "./cn/index";
 export { cx } from "./cx";
 export { configure, cv } from "./core";
 export type {
@@ -27,4 +27,4 @@ export type {
   CnFunction,
   Engine as MergeEngine,
   EngineOptions as MergeEngineOptions,
-} from "./merge/types";
+} from "./cn/internal/types";

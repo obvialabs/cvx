@@ -5,7 +5,7 @@
  */
 
 import { appendClassValue, cx } from "./cx/compose";
-import { cn as defaultCn } from "./cn";
+import { cn as defaultCn } from "./cn/index";
 
 import type {
   AnyCX,

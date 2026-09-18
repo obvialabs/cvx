@@ -4,14 +4,14 @@
  * The merge engine is derived from the MIT-licensed `cn` project by shadcn
  * and contributors. See NOTICE.md for attribution.
  */
-import tables from "./merge/tables.generated.js";
+import tables from "./internal/generated/tables.js";
 import {
   createEngine,
   twJoin,
   wrapClsx,
-} from "./merge/engine.js";
+} from "./internal/engine.js";
 
-import type { CX } from "./types.js";
+import type { CX } from "../types.js";
 
 const engine = /* @__PURE__ */ createEngine(tables);
 

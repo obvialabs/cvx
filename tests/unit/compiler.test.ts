@@ -8,7 +8,7 @@ import {
   mergeConfigs,
   subsetConfig,
   type CnConfig,
-} from "../../src/merge/compiler";
+} from "../../src/cn/internal/compiler";
 
 describe("cn compiler", () => {
   test("compiles the default model to dense engine tables", () => {

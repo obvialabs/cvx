@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 
 import { defaultConfig } from "../../src/config";
-import { compileToTables } from "../../src/merge/compiler";
+import { compileToTables } from "../../src/cn/internal/compiler";
 import {
   clsx,
   createEngine,
   twJoin,
   wrapClsx,
-} from "../../src/merge/engine";
+} from "../../src/cn/internal/engine";
 
 describe("cn runtime engine", () => {
   const build = (cacheSize: number) => {
