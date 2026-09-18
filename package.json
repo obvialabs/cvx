@@ -1,0 +1,79 @@
+{
+  "type"              : "module",
+  "name"              : "@obvia/cv",
+  "description"       : "Compiled class variants, class-value composition, and Tailwind-aware class conflict resolution for modern TypeScript applications.",
+  "keywords"          : ["obvia", "class", "className", "variants", "css", "tailwindcss", "cva", "clsx", "tailwind-merge", "classnames", "cn", "cx", "cv"],
+  "license"           : "MIT",
+  "homepage"          : "https://obvia.studio/",
+  "version"           : "0.1.0",
+
+  "author"            : {
+    "name"  : "Selçuk Çukur",
+    "email" : "hello@selcukcukur.me",
+    "url"   : "https://selcukcukur.me"
+  },
+
+  "bugs"              : {
+    "email" : "security@obvia.dev",
+    "url"   : "https://github.com/obvialabs/cvx/issues"
+  },
+
+  "scripts"           : {
+    "clean"           : "bun -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\"",
+    "build"           : "tsdown",
+    "dev"             : "tsdown --watch",
+    "check"           : "tsc -p tsconfig.json",
+    "test"            : "bun test",
+    "bench"           : "bun bench/compare.bench.ts",
+    "pack"            : "bun run build && bun pm pack"
+  },
+
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/selcukcukur/cv.git"
+  },
+  "packageManager": "bun@1.4.2",
+
+  "files": [
+    "dist",
+    "license.md",
+    "NOTICE.md",
+    "THIRD_PARTY_NOTICES.md",
+    "readme.md"
+  ],
+  "devDependencies": {
+    "@types/bun": "1.4.2",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "cva": "1.0.0-beta.12",
+    "tailwind-merge": "3.6.0",
+    "tsdown": "0.23.0",
+    "typescript": "6.0.3"
+  },
+  "types": "./dist/index.d.ts",
+
+  "exports"       : {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "import": "./dist/config.js"
+    },
+    "./schema": {
+      "types": "./dist/schema.d.ts",
+      "import": "./dist/schema.js"
+    },
+    "./tailwindcss": "./dist/tailwindcss.css",
+    "./package.json": "./package.json"
+  },
+
+  "publishConfig" : {
+    "access"      : "public",
+    "provenance"  : true
+  },
+  "sideEffects"   : [
+    "**/*.css"
+  ]
+}
