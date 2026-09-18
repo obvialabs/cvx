@@ -2,6 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { cva as legacyCva } from "class-variance-authority";
 import { cva as betaCva } from "cva";
 
+const betaReference = betaCva as (config: any) => any;
+const legacyReference = legacyCva as (base: any, options?: any) => any;
+
 import { cv } from "../../src/index";
 
 const betaConfig = {
@@ -40,7 +43,7 @@ const betaConfig = {
 
 describe("cva@1 beta behavior parity", () => {
   test("matches a broad variant/default/compound matrix", () => {
-    const upstream = betaCva(betaConfig);
+    const upstream = betaReference(betaConfig);
     const current = cv(betaConfig);
     const intents = [
       undefined,
@@ -89,17 +92,17 @@ describe("cva@1 beta behavior parity", () => {
   });
 
   test("matches composition, inherited defaults and parent compounds", () => {
-    const upstreamTone = betaCva({
+    const upstreamTone = betaReference({
       base: "tone",
       variants: { tone: { a: "a", b: "b", c: "c" } },
       defaultVariants: { tone: "a" },
     });
-    const upstreamSize = betaCva({
+    const upstreamSize = betaReference({
       base: "size",
       variants: { size: { s: "s", m: "m", l: "l" } },
       defaultVariants: { size: "s" },
     });
-    const upstream = betaCva({
+    const upstream = betaReference({
       composes: [upstreamTone, upstreamSize],
       base: "parent",
       defaultVariants: { tone: "b", size: "l" },
@@ -140,13 +143,13 @@ describe("cva@1 beta behavior parity", () => {
   });
 
   test("matches nested composition semantics", () => {
-    const upstreamA = betaCva({
+    const upstreamA = betaReference({
       base: "a",
       variants: { x: { one: "a1", two: "a2" } },
       defaultVariants: { x: "one" },
     });
-    const upstreamB = betaCva({ base: "b", composes: upstreamA });
-    const upstreamC = betaCva({
+    const upstreamB = betaReference({ base: "b", composes: upstreamA });
+    const upstreamC = betaReference({
       base: "c",
       composes: upstreamB,
       defaultVariants: { x: "two" },
@@ -187,7 +190,7 @@ describe("class-variance-authority 0.7 behavior parity", () => {
       ],
     } as const;
 
-    const upstream = legacyCva("button", options);
+    const upstream = legacyReference("button", options);
     const current = cv({ base: "button", ...options });
 
     for (const intent of [undefined, "primary", "danger", null] as const) {

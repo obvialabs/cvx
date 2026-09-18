@@ -8,6 +8,9 @@ import { twMerge as baselineTwMerge } from "tailwind-merge";
 
 import { cn, cv, cx } from "../src/index";
 
+const betaReference = betaCva as (config: any) => any;
+const legacyReference = legacyCva as (base: any, options?: any) => any;
+
 const base = "button font-semibold border rounded";
 const variants = {
   intent: {
@@ -43,12 +46,12 @@ const defaultVariants = {
   size: "medium",
 } as const;
 
-const legacy = legacyCva(base, {
+const legacy = legacyReference(base, {
   variants,
   compoundVariants,
   defaultVariants,
 });
-const beta = betaCva({
+const beta = betaReference({
   base,
   variants,
   compoundVariants,
@@ -71,12 +74,12 @@ const heavyCompounds = Array.from({ length: 24 }, (_, index) => ({
   className: `compound-${index}`,
 }));
 
-const legacyHeavy = legacyCva(base, {
+const legacyHeavy = legacyReference(base, {
   variants,
   compoundVariants: heavyCompounds,
   defaultVariants,
 });
-const betaHeavy = betaCva({
+const betaHeavy = betaReference({
   base,
   variants,
   compoundVariants: heavyCompounds,
@@ -85,7 +88,7 @@ const betaHeavy = betaCva({
 const obviaHeavy = cv({
   base,
   variants,
-  compoundVariants: heavyCompounds,
+  compoundVariants: heavyCompounds as any,
   defaultVariants,
 });
 
@@ -100,7 +103,7 @@ let sink = "";
 let cursor = 0;
 
 function median(values: number[]): number {
-  const sorted = values.toSorted((a, b) => a - b);
+  const sorted = [...values].sort((a, b) => a - b);
   return sorted[Math.floor(sorted.length / 2)];
 }
 

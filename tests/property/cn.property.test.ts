@@ -3,6 +3,7 @@ import { clsx } from "clsx";
 import { twMerge as baselineTwMerge } from "tailwind-merge";
 
 import { cn } from "../../src/index";
+import type { ClassValue } from "../../src/cx/types";
 import { createRandom, pick } from "../helpers/random";
 
 const utilityPools = [
@@ -33,7 +34,7 @@ describe("cn properties", () => {
 
     for (let caseIndex = 0; caseIndex < 8_000; caseIndex++) {
       const length = 1 + random.int(10);
-      const inputs: unknown[] = [];
+      const inputs: ClassValue[] = [];
 
       for (let index = 0; index < length; index++) {
         const utility = randomUtility(random);
@@ -52,7 +53,7 @@ describe("cn properties", () => {
         }
       }
 
-      expect(cn(...(inputs as never[]))).toBe(baselineTwMerge(clsx(...inputs)));
+      expect(cn(...inputs)).toBe(baselineTwMerge(clsx(...(inputs as Parameters<typeof clsx>))));
     }
   });
 

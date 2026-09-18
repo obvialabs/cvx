@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { cva as betaCva, cx as betaCx } from "cva";
+
+const betaReference = betaCva as (config: any) => any;
 import { clsx } from "clsx";
 import { twMerge as baselineTwMerge } from "tailwind-merge";
 
@@ -91,7 +93,7 @@ describe("performance guards", () => {
   });
 
   test("default cv calls retain a material advantage over cva beta", () => {
-    const baselineComponent = betaCva(standardConfig);
+    const baselineComponent = betaReference(standardConfig);
     const currentComponent = cv(standardConfig);
 
     const baseline = measureNanoseconds(() => {
@@ -105,7 +107,7 @@ describe("performance guards", () => {
   });
 
   test("explicit cv variants retain a material advantage over cva beta", () => {
-    const baselineComponent = betaCva(standardConfig);
+    const baselineComponent = betaReference(standardConfig);
     const currentComponent = cv(standardConfig);
     const props = { intent: "danger", size: "lg", disabled: true } as const;
 
@@ -120,7 +122,7 @@ describe("performance guards", () => {
   });
 
   test("rotating cv variants stay ahead without relying on one last-value hit", () => {
-    const baselineComponent = betaCva(standardConfig);
+    const baselineComponent = betaReference(standardConfig);
     const currentComponent = cv(standardConfig);
     let baselineCursor = 0;
     let currentCursor = 0;
@@ -148,7 +150,7 @@ describe("performance guards", () => {
       defaultVariants: defaults,
       compoundVariants: compounds,
     } as const;
-    const baselineComponent = betaCva(config);
+    const baselineComponent = betaReference(config);
     const currentComponent = cv(config as any) as any;
     const props = { intent: "danger", size: "md", disabled: false } as const;
 
@@ -169,17 +171,17 @@ describe("performance guards", () => {
   });
 
   test("same-runtime composition keeps the composed hot path competitive", () => {
-    const betaTone = betaCva({
+    const betaTone = betaReference({
       base: "tone",
       variants: { tone: { normal: "text-zinc-900", danger: "text-red-600" } },
       defaultVariants: { tone: "normal" },
     });
-    const betaSize = betaCva({
+    const betaSize = betaReference({
       base: "size",
       variants: { size: { sm: "text-sm", lg: "text-lg" } },
       defaultVariants: { size: "sm" },
     });
-    const betaComponent = betaCva({
+    const betaComponent = betaReference({
       composes: [betaTone, betaSize],
       base: "button",
       compoundVariants: [{ tone: "danger", size: "lg", class: "alert" }],
@@ -301,7 +303,7 @@ describe("performance guards", () => {
   });
 
   test("uncached general cv path remains competitive with cva beta", () => {
-    const baselineComponent = betaCva(standardConfig);
+    const baselineComponent = betaReference(standardConfig);
     const currentComponent = createCvRuntime({ compileLimit: 0 })(standardConfig);
     const props = { intent: "secondary", size: "lg", disabled: false } as const;
 
@@ -321,7 +323,7 @@ describe("performance guards", () => {
     const config = { base: "button", variants, defaultVariants: defaults } as const;
     const baseline = measureNanoseconds(
       () => {
-        sink = betaCva(config)();
+        sink = betaReference(config)();
       },
       { iterations: 10_000, warmup: 2_000 },
     );
@@ -349,7 +351,7 @@ describe("performance guards", () => {
 
     const baseline = measureNanoseconds(
       () => {
-        sink = betaCva(config)(props);
+        sink = betaReference(config)(props);
       },
       { iterations: 8_000, warmup: 1_000 },
     );
