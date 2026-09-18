@@ -1,17 +1,20 @@
-import {
-  cn,
-  cv,
-  cx,
-  type ClassValue,
-  type VariantProps,
-} from "../../src/index";
+import * as cvx from "../../src/index";
+import { cn, cv, cx, type VariantProps } from "../../src/index";
 
 type Expect<T extends true> = T;
+type Equal<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends
+  (<T>() => T extends B ? 1 : 2)
+    ? true
+    : false;
 type HasKey<T, K extends PropertyKey> = K extends keyof T ? true : false;
 type Not<T extends boolean> = T extends true ? false : true;
 
+// Runtime package surface is intentionally only three functions.
+type _RuntimeSurface = Expect<Equal<keyof typeof cvx, "cn" | "cv" | "cx">>;
+
 const button = cv({
-  base: ["button", { active: true }] satisfies ClassValue,
+  base: ["button", { active: true }],
   variants: {
     intent: { primary: "p", secondary: "s" },
     size: { 0: "zero", 1: "one" },
