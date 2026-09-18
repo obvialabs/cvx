@@ -11,6 +11,6 @@ coverageSkipTestFiles = true
 # Keep executable source coverage high without counting generated lookup data as
 # hand-authored behavior. Differential/property suites cover semantic breadth.
 coverageThreshold = { lines = 0.90, functions = 0.90, statements = 0.90 }
-coveragePathIgnorePatterns = ["src/merge/*.generated.ts"]
+coveragePathIgnorePatterns = ["src/cn/internal/generated/**"]
 coverageReporter = ["text", "lcov"]
 coverageDir = "coverage"
