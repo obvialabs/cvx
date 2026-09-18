@@ -1,0 +1,100 @@
+# Workflow name
+name: tests
+
+# Workflow conditions
+on:
+  # Run validation when CVX source, tests, build configuration, or package
+  # metadata changes on the default branch.
+  push:
+    branches:
+      - master
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "package.json"
+      - "bun.lock"
+      - "bunfig.toml"
+      - "tsconfig.json"
+      - "tsdown.config.ts"
+      - ".github/workflows/tests.yml"
+
+  # Validate every pull request before it is merged.
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "package.json"
+      - "bun.lock"
+      - "bunfig.toml"
+      - "tsconfig.json"
+      - "tsdown.config.ts"
+      - ".github/workflows/tests.yml"
+
+  # Allow manual execution from the GitHub Actions interface.
+  workflow_dispatch:
+
+# Grant only the repository permission required by this workflow.
+permissions:
+  contents: read
+
+# Cancel an older run when a newer commit targets the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Workflow jobs
+jobs:
+  # Job (CVX)
+  cvx:
+    # Job name shown in GitHub checks: "tests / cvx".
+    name: cvx
+
+    # Use a pinned GitHub-hosted Linux image for reproducible CI behavior.
+    runs-on: ubuntu-24.04
+
+    # Prevent a stalled validation process from consuming CI indefinitely.
+    timeout-minutes: 15
+
+    # Job steps
+    steps:
+      # Checkout the exact commit that triggered this workflow.
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # Install the Bun version declared by package.json.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      # Install exactly the dependency graph committed in bun.lock.
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Validate the source project with the configured TypeScript compiler.
+      - name: Check source types
+        run: bun run check
+
+      # Verify isolated implementation contracts and edge cases.
+      - name: Run unit tests
+        run: bun run test:unit
+
+      # Compare CVX behavior against the supported upstream semantics.
+      - name: Run behavior tests
+        run: bun run test:behavior
+
+      # Exercise deterministic generated inputs and cross-path invariants.
+      - name: Run property tests
+        run: bun run test:property
+
+      # Enforce package, source, workflow, and build-configuration invariants.
+      - name: Run guard tests
+        run: bun run test:guard
+
+      # Compile positive and negative public TypeScript API contracts.
+      - name: Run type tests
+        run: bun run test:type
+
+      # Build both configured runtime formats and bundled declarations.
+      - name: Build package
+        run: bun run build
