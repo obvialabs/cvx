@@ -1,0 +1,90 @@
+# Workflow name
+name: publish
+
+# Workflow conditions
+on:
+  # Publish only when a GitHub release is explicitly published.
+  release:
+    types:
+      - published
+
+# Read repository contents and request an OIDC token for npm provenance.
+permissions:
+  contents: read
+  id-token: write
+
+# A release tag must never start two concurrent npm publishes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+# Workflow jobs
+jobs:
+  # Job (CVX npm package)
+  npm:
+    # Job name shown in GitHub checks: "publish / npm".
+    name: npm
+
+    # Use the same pinned Linux image as the validation workflows.
+    runs-on: ubuntu-24.04
+
+    # Prevent stalled registry/build work from consuming CI indefinitely.
+    timeout-minutes: 15
+
+    # Job steps
+    steps:
+      # Checkout the exact release commit without retaining Git credentials.
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # Install the Bun version declared by package.json for install/test/build.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      # Configure the current Node/npm toolchain used only for registry publish
+      # and npm provenance generation.
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      # Install exactly the dependency graph committed in bun.lock.
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Require release tags to match package.json exactly (for example v0.1.0).
+      - name: Verify release version
+        shell: bash
+        run: |
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          EXPECTED_TAG="v${PACKAGE_VERSION}"
+
+          if [[ "${GITHUB_REF_NAME}" != "${EXPECTED_TAG}" ]]; then
+            echo "::error::Release tag ${GITHUB_REF_NAME} does not match package version ${EXPECTED_TAG}."
+            exit 1
+          fi
+
+      # Run every correctness contract before producing publish artifacts.
+      - name: Run test suite
+        run: bun run test
+
+      # Validate the source project independently from the test type contracts.
+      - name: Check source types
+        run: bun run check
+
+      # Build the configured ESM/CJS runtimes, declarations, maps, and CSS asset.
+      - name: Build package
+        run: bun run build
+
+      # Inspect the exact npm payload before the irreversible registry action.
+      - name: Verify package payload
+        run: npm pack --dry-run
+
+      # Publish the public package with npm provenance attached.
+      - name: Publish package
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
