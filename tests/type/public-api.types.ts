@@ -21,13 +21,13 @@ const button = cv({
     disabled: { true: "disabled", false: "enabled" },
     _density: { compact: "compact", roomy: "roomy" },
   },
-  defaultVariants: {
+  defaults: {
     intent: "primary",
     size: 0,
     disabled: false,
     _density: "compact",
   },
-  compoundVariants: [
+  compounds: [
     { intent: ["primary", "secondary"], disabled: false, class: "ready" },
   ],
 });
@@ -56,3 +56,9 @@ const className: string = cn("button", ["active", { disabled: false }]);
 const expression: string = cx("button", 2, 3n, { active: true });
 void className;
 void expression;
+
+// CVX 0.1.0 intentionally uses concise authoring keys with no legacy aliases.
+// @ts-expect-error use `defaults`
+cv({ variants: { tone: { soft: "soft" } }, defaultVariants: { tone: "soft" } });
+// @ts-expect-error use `compounds`
+cv({ variants: { tone: { soft: "soft" } }, compoundVariants: [{ tone: "soft", class: "x" }] });

@@ -2,19 +2,19 @@ import { cv, type VariantProps } from "../../src/index";
 
 const tone = cv({
   variants: { tone: { calm: "calm", loud: "loud" } },
-  defaultVariants: { tone: "calm" },
+  defaults: { tone: "calm" },
 });
 
 const size = cv({
   variants: { size: { sm: "sm", lg: "lg" } },
-  defaultVariants: { size: "sm" },
+  defaults: { size: "sm" },
 });
 
 const composed = cv({
   composes: [tone, size],
   variants: { emphasis: { low: "low", high: "high" } },
-  defaultVariants: { tone: "loud", emphasis: "high" },
-  compoundVariants: [
+  defaults: { tone: "loud", emphasis: "high" },
+  compounds: [
     { tone: "loud", size: "lg", emphasis: "high", class: "hit" },
   ],
 });
@@ -32,5 +32,5 @@ type Props = VariantProps<typeof composed>;
 const props: Props = { tone: "loud", size: "sm", emphasis: "high" };
 void props;
 
-const single = cv({ composes: tone, defaultVariants: { tone: "loud" } });
+const single = cv({ composes: tone, defaults: { tone: "loud" } });
 single({ tone: "calm" });

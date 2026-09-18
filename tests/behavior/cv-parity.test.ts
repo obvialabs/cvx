@@ -44,7 +44,12 @@ const betaConfig = {
 describe("cva@1 beta behavior parity", () => {
   test("matches a broad variant/default/compound matrix", () => {
     const upstream = betaReference(betaConfig);
-    const current = cv(betaConfig);
+    const current = cv({
+      base: betaConfig.base,
+      variants: betaConfig.variants,
+      defaults: betaConfig.defaultVariants,
+      compounds: betaConfig.compoundVariants,
+    });
     const intents = [
       undefined,
       "primary",
@@ -115,18 +120,18 @@ describe("cva@1 beta behavior parity", () => {
     const tone = cv({
       base: "tone",
       variants: { tone: { a: "a", b: "b", c: "c" } },
-      defaultVariants: { tone: "a" },
+      defaults: { tone: "a" },
     });
     const size = cv({
       base: "size",
       variants: { size: { s: "s", m: "m", l: "l" } },
-      defaultVariants: { size: "s" },
+      defaults: { size: "s" },
     });
     const current = cv({
       composes: [tone, size],
       base: "parent",
-      defaultVariants: { tone: "b", size: "l" },
-      compoundVariants: [
+      defaults: { tone: "b", size: "l" },
+      compounds: [
         { tone: "b", size: "l", class: "hit" },
         { tone: ["a", "c"], size: ["s", "m"], className: "matrix" },
       ],
@@ -158,13 +163,13 @@ describe("cva@1 beta behavior parity", () => {
     const currentA = cv({
       base: "a",
       variants: { x: { one: "a1", two: "a2" } },
-      defaultVariants: { x: "one" },
+      defaults: { x: "one" },
     });
     const currentB = cv({ base: "b", composes: currentA });
     const currentC = cv({
       base: "c",
       composes: currentB,
-      defaultVariants: { x: "two" },
+      defaults: { x: "two" },
     });
 
     expect(currentC()).toBe(upstreamC());
@@ -191,11 +196,19 @@ describe("class-variance-authority 0.7 behavior parity", () => {
     } as const;
 
     const upstream = legacyReference("button", options);
-    const current = cv({ base: "button", ...options });
+    const current = cv({
+      base: "button",
+      variants: options.variants,
+      defaults: options.defaultVariants,
+      compounds: options.compoundVariants,
+    });
 
-    for (const intent of [undefined, "primary", "danger", null] as const) {
-      for (const size of [undefined, "sm", "lg", null] as const) {
-        for (const disabled of [undefined, true, false, null] as const) {
+    // CVA 0.7 treats explicit `null` differently. Null/default semantics are
+    // covered against the current cva beta above; this matrix stays on the
+    // behavior genuinely shared by both generations.
+    for (const intent of [undefined, "primary", "danger"] as const) {
+      for (const size of [undefined, "sm", "lg"] as const) {
+        for (const disabled of [undefined, true, false] as const) {
           const props = { intent, size, disabled };
           expect(current(props as never)).toBe(upstream(props as never));
         }

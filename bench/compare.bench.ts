@@ -33,14 +33,14 @@ const variants = {
   },
 } as const;
 
-const compoundVariants = [
+const compounds = [
   { intent: "primary", size: "medium", className: "primary-medium" },
   { intent: "warning", disabled: false, className: "warning-enabled" },
   { intent: "warning", disabled: true, className: "warning-disabled" },
   { intent: ["warning", "danger"], className: "warning-danger" },
 ] as const;
 
-const defaultVariants = {
+const defaults = {
   disabled: false,
   intent: "primary",
   size: "medium",
@@ -48,20 +48,20 @@ const defaultVariants = {
 
 const legacy = legacyReference(base, {
   variants,
-  compoundVariants,
-  defaultVariants,
+  compoundVariants: compounds,
+  defaultVariants: defaults,
 });
 const beta = betaReference({
   base,
   variants,
-  compoundVariants,
-  defaultVariants,
+  compoundVariants: compounds,
+  defaultVariants: defaults,
 });
 const obvia = cv({
   base,
   variants,
-  compoundVariants,
-  defaultVariants,
+  compounds,
+  defaults,
 });
 
 const heavyCompounds = Array.from({ length: 24 }, (_, index) => ({
@@ -77,19 +77,19 @@ const heavyCompounds = Array.from({ length: 24 }, (_, index) => ({
 const legacyHeavy = legacyReference(base, {
   variants,
   compoundVariants: heavyCompounds,
-  defaultVariants,
+  defaultVariants: defaults,
 });
 const betaHeavy = betaReference({
   base,
   variants,
   compoundVariants: heavyCompounds,
-  defaultVariants,
+  defaultVariants: defaults,
 });
 const obviaHeavy = cv({
   base,
   variants,
-  compoundVariants: heavyCompounds as any,
-  defaultVariants,
+  compounds: heavyCompounds as any,
+  defaults,
 });
 
 const rotatingProps = [

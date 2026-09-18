@@ -38,14 +38,23 @@ const variants = {
 
 const defaults = { intent: "primary", size: "md", disabled: false } as const;
 
-const standardConfig = {
+const standardCompounds = [
+  { intent: "danger", size: "lg", class: "danger-large" },
+  { intent: ["primary", "secondary"], size: "md", class: "common-medium" },
+] as const;
+
+const betaStandardConfig = {
   base: "button",
   variants,
   defaultVariants: defaults,
-  compoundVariants: [
-    { intent: "danger", size: "lg", class: "danger-large" },
-    { intent: ["primary", "secondary"], size: "md", class: "common-medium" },
-  ],
+  compoundVariants: standardCompounds,
+} as const;
+
+const standardConfig = {
+  base: "button",
+  variants,
+  defaults,
+  compounds: standardCompounds,
 } as const;
 
 const rotatingProps = [
@@ -93,7 +102,7 @@ describe("performance guards", () => {
   });
 
   test("default cv calls retain a material advantage over cva beta", () => {
-    const baselineComponent = betaReference(standardConfig);
+    const baselineComponent = betaReference(betaStandardConfig);
     const currentComponent = cv(standardConfig);
 
     const baseline = measureNanoseconds(() => {
@@ -107,7 +116,7 @@ describe("performance guards", () => {
   });
 
   test("explicit cv variants retain a material advantage over cva beta", () => {
-    const baselineComponent = betaReference(standardConfig);
+    const baselineComponent = betaReference(betaStandardConfig);
     const currentComponent = cv(standardConfig);
     const props = { intent: "danger", size: "lg", disabled: true } as const;
 
@@ -122,7 +131,7 @@ describe("performance guards", () => {
   });
 
   test("rotating cv variants stay ahead without relying on one last-value hit", () => {
-    const baselineComponent = betaReference(standardConfig);
+    const baselineComponent = betaReference(betaStandardConfig);
     const currentComponent = cv(standardConfig);
     let baselineCursor = 0;
     let currentCursor = 0;
@@ -144,13 +153,19 @@ describe("performance guards", () => {
       disabled: index % 4 === 0 ? ([true, false] as const) : false,
       className: `compound-${index}`,
     }));
-    const config = {
+    const betaConfig = {
       base: "button",
       variants,
       defaultVariants: defaults,
       compoundVariants: compounds,
     } as const;
-    const baselineComponent = betaReference(config);
+    const config = {
+      base: "button",
+      variants,
+      defaults,
+      compounds,
+    } as const;
+    const baselineComponent = betaReference(betaConfig);
     const currentComponent = cv(config as any) as any;
     const props = { intent: "danger", size: "md", disabled: false } as const;
 
@@ -190,17 +205,17 @@ describe("performance guards", () => {
     const tone = cv({
       base: "tone",
       variants: { tone: { normal: "text-zinc-900", danger: "text-red-600" } },
-      defaultVariants: { tone: "normal" },
+      defaults: { tone: "normal" },
     });
     const size = cv({
       base: "size",
       variants: { size: { sm: "text-sm", lg: "text-lg" } },
-      defaultVariants: { size: "sm" },
+      defaults: { size: "sm" },
     });
     const currentComponent = cv({
       composes: [tone, size],
       base: "button",
-      compoundVariants: [{ tone: "danger", size: "lg", class: "alert" }],
+      compounds: [{ tone: "danger", size: "lg", class: "alert" }],
     });
     const props = { tone: "danger", size: "lg" } as const;
 
@@ -282,8 +297,8 @@ describe("performance guards", () => {
     const config = {
       base: "button",
       variants,
-      defaultVariants: defaults,
-      compoundVariants: [
+      defaults,
+      compounds: [
         { intent: "danger", size: "lg", disabled: false, class: "hit" },
         { intent: ["primary", "secondary"], size: "md", class: "common" },
       ],
@@ -303,7 +318,7 @@ describe("performance guards", () => {
   });
 
   test("uncached general cv path remains competitive with cva beta", () => {
-    const baselineComponent = betaReference(standardConfig);
+    const baselineComponent = betaReference(betaStandardConfig);
     const currentComponent = createCvRuntime({ compileLimit: 0 })(standardConfig);
     const props = { intent: "secondary", size: "lg", disabled: false } as const;
 
@@ -320,10 +335,11 @@ describe("performance guards", () => {
   });
 
   test("component creation does not regress catastrophically versus cva beta", () => {
-    const config = { base: "button", variants, defaultVariants: defaults } as const;
+    const betaConfig = { base: "button", variants, defaultVariants: defaults } as const;
+    const config = { base: "button", variants, defaults } as const;
     const baseline = measureNanoseconds(
       () => {
-        sink = betaReference(config)();
+        sink = betaReference(betaConfig)();
       },
       { iterations: 10_000, warmup: 2_000 },
     );
@@ -341,17 +357,23 @@ describe("performance guards", () => {
   });
 
   test("creation plus first call stays bounded for cold-ish component use", () => {
-    const config = {
+    const betaConfig = {
       base: "button",
       variants,
       defaultVariants: defaults,
       compoundVariants: [{ intent: "danger", size: "lg", class: "hit" }],
     } as const;
+    const config = {
+      base: "button",
+      variants,
+      defaults,
+      compounds: [{ intent: "danger", size: "lg", class: "hit" }],
+    } as const;
     const props = { intent: "danger", size: "lg", disabled: false } as const;
 
     const baseline = measureNanoseconds(
       () => {
-        sink = betaReference(config)(props);
+        sink = betaReference(betaConfig)(props);
       },
       { iterations: 8_000, warmup: 1_000 },
     );

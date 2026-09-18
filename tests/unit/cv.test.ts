@@ -16,13 +16,13 @@ const createButton = () =>
       disabled: { true: "disabled", false: "enabled" },
       level: { 0: "level-zero", 1: "level-one" },
     },
-    defaultVariants: {
+    defaults: {
       intent: "primary",
       size: "md",
       disabled: false,
       level: 1,
     },
-    compoundVariants: [
+    compounds: [
       { intent: "danger", size: ["sm", "lg"], class: "danger-sized" },
       { disabled: true, level: 0, className: "disabled-zero" },
       {
@@ -70,7 +70,7 @@ describe("cv", () => {
   test("uses defaults for undefined, null, and empty-string selections", () => {
     const component = cv({
       variants: { tone: { soft: "soft", hard: "hard" } },
-      defaultVariants: { tone: "soft" },
+      defaults: { tone: "soft" },
     });
 
     expect(component({ tone: undefined })).toBe("soft");
@@ -85,7 +85,7 @@ describe("cv", () => {
         tone: { a: "tone-a", b: "tone-b" },
         size: { sm: "small", lg: "large" },
       },
-      defaultVariants: { tone: "a", size: "sm" },
+      defaults: { tone: "a", size: "sm" },
     });
 
     expect(component({ tone: "missing" as "a", size: "lg" })).toBe(
@@ -105,20 +105,20 @@ describe("cv", () => {
     const config: {
       base: string;
       variants: { tone: { a: string } };
-      defaultVariants: { tone: "a" };
-      compoundVariants: { tone: "a"; class: string }[];
+      defaults: { tone: "a" };
+      compounds: { tone: "a"; class: string }[];
     } = {
       base: "before",
       variants: { tone: { a: "a" } },
-      defaultVariants: { tone: "a" },
-      compoundVariants: [{ tone: "a", class: "compound" }],
+      defaults: { tone: "a" },
+      compounds: [{ tone: "a", class: "compound" }],
     };
     const component = cv(config);
 
     config.base = "after";
     config.variants.tone.a = "changed";
-    config.defaultVariants.tone = "a";
-    config.compoundVariants[0]!.class = "changed-compound";
+    config.defaults.tone = "a";
+    config.compounds[0]!.class = "changed-compound";
 
     expect(component()).toBe("before a compound");
   });
@@ -127,18 +127,18 @@ describe("cv", () => {
     const tone = cv({
       base: "tone",
       variants: { intent: { primary: "primary", danger: "danger" } },
-      defaultVariants: { intent: "primary" },
+      defaults: { intent: "primary" },
     });
     const size = cv({
       base: "size",
       variants: { size: { sm: "sm", lg: "lg" } },
-      defaultVariants: { size: "sm" },
+      defaults: { size: "sm" },
     });
     const button = cv({
       composes: [tone, size],
       base: "button",
-      defaultVariants: { intent: "danger", size: "lg" },
-      compoundVariants: [
+      defaults: { intent: "danger", size: "lg" },
+      compounds: [
         { intent: "danger", size: "lg", class: "danger-large" },
       ],
     });
@@ -151,8 +151,8 @@ describe("cv", () => {
 
   test("supports deeply nested composition", () => {
     const a = cv({ base: "a", variants: { x: { one: "a1", two: "a2" } } });
-    const b = cv({ base: "b", composes: a, defaultVariants: { x: "one" } });
-    const c = cv({ base: "c", composes: b, defaultVariants: { x: "two" } });
+    const b = cv({ base: "b", composes: a, defaults: { x: "one" } });
+    const c = cv({ base: "c", composes: b, defaults: { x: "two" } });
     const d = cv({ base: "d", composes: c });
 
     expect(d()).toBe("a a2 b c d");
@@ -169,7 +169,7 @@ describe("cv", () => {
       {
         config: {
           variants: { tone: { a: "a", b: "b" } },
-          defaultVariants: { tone: "a" },
+          defaults: { tone: "a" },
         },
       },
     );
@@ -177,7 +177,7 @@ describe("cv", () => {
     const component = cv({
       composes: foreign,
       base: "local",
-      defaultVariants: { tone: "b" },
+      defaults: { tone: "b" },
     } as any);
 
     expect(component({ className: "extra" })).toBe("foreign-b local extra");
@@ -193,8 +193,8 @@ describe("cv", () => {
         a: { x: "ax", y: "ay", z: "az" },
         b: { x: "bx", y: "by" },
       },
-      defaultVariants: { a: "x", b: "y" },
-      compoundVariants: [{ a: "y", b: "x", class: "hit" }],
+      defaults: { a: "x", b: "y" },
+      compounds: [{ a: "y", b: "x", class: "hit" }],
     } as const;
     const compiled = fast(config);
     const uncached = slow(config);

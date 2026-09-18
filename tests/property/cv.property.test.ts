@@ -11,13 +11,13 @@ const config = {
     disabled: { true: "disabled", false: "enabled" },
     level: { 0: "l0", 1: "l1", 2: "l2" },
   },
-  defaultVariants: {
+  defaults: {
     intent: "primary",
     size: "md",
     disabled: false,
     level: 1,
   },
-  compoundVariants: [
+  compounds: [
     { intent: "danger", disabled: false, class: "danger-ready" },
     { intent: ["primary", "secondary"], size: ["sm", "md"], class: "common" },
     { level: [0, 1, 2], disabled: true, className: "disabled-level" },
@@ -91,19 +91,19 @@ describe("cv properties", () => {
       const tone = engine({
         base: "tone",
         variants: { tone: { calm: "calm", loud: "loud" } },
-        defaultVariants: { tone: "calm" },
+        defaults: { tone: "calm" },
       });
       const size = engine({
         base: "size",
         variants: { size: { sm: "sm", lg: "lg" } },
-        defaultVariants: { size: "sm" },
+        defaults: { size: "sm" },
       });
       const middle = engine({ composes: [tone, size], base: "middle" });
       return engine({
         composes: middle,
         base: "root",
-        defaultVariants: { tone: "loud", size: "lg" },
-        compoundVariants: [{ tone: "loud", size: "lg", class: "hit" }],
+        defaults: { tone: "loud", size: "lg" },
+        compounds: [{ tone: "loud", size: "lg", class: "hit" }],
       });
     };
 
@@ -123,7 +123,7 @@ describe("cv properties", () => {
       createCvRuntime({ compileLimit: index % 2 === 0 ? 512 : 0 })({
         base: `component-${index}`,
         variants: { tone: { a: `a-${index}`, b: `b-${index}` } },
-        defaultVariants: { tone: index % 2 === 0 ? "a" : "b" },
+        defaults: { tone: index % 2 === 0 ? "a" : "b" },
       }),
     );
 
