@@ -1,0 +1,117 @@
+# Workflow name
+name: benchmark
+
+# Workflow conditions
+on:
+  # Run benchmarks when CVX runtime or benchmark behavior changes on the default branch.
+  push:
+    branches:
+      - master
+    paths:
+      - "src/**"
+      - "bench/**"
+      - "tests/performance/**"
+      - "tests/helpers/measure.ts"
+      - "package.json"
+      - "bun.lock"
+      - ".github/workflows/benchmark.yml"
+
+  # Keep a periodic historical data point even when the package is unchanged.
+  schedule:
+    - cron: "17 3 * * 1"
+
+  # Allow manual benchmark runs from the GitHub Actions interface.
+  workflow_dispatch:
+
+# Grant only the repository permission required by this workflow.
+permissions:
+  contents: read
+
+# Never benchmark two revisions of the same ref at the same time.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Workflow jobs
+jobs:
+  # Job (CVX)
+  cvx:
+    # Job name shown in GitHub checks: "benchmark / cvx".
+    name: cvx
+
+    # Pin the runner image because OS/runtime changes materially affect timings.
+    runs-on: ubuntu-24.04
+
+    # Keep enough headroom for warm-up, regression guards, and comparison runs.
+    timeout-minutes: 20
+
+    # Job steps
+    steps:
+      # Checkout the exact commit being benchmarked.
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # Install the Bun version declared by package.json and expose its metadata.
+      - name: Setup Bun
+        id: bun
+        uses: oven-sh/setup-bun@v2
+
+      # Install exactly the dependency graph committed in bun.lock.
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Record runner/runtime details so benchmark results remain interpretable.
+      - name: Record benchmark environment
+        shell: bash
+        run: |
+          {
+            echo "CVX benchmark environment"
+            echo "package=@obvia/cv"
+            echo "commit=${GITHUB_SHA}"
+            echo "runner=${RUNNER_OS}/${RUNNER_ARCH}"
+            echo "image=ubuntu-24.04"
+            echo "bun=${{ steps.bun.outputs.bun-version }}"
+            echo "revision=${{ steps.bun.outputs.bun-revision }}"
+            echo
+            echo "kernel:"
+            uname -a
+            echo
+            echo "cpu:"
+            lscpu | grep -E '^(Architecture|CPU\(s\)|Model name|Thread\(s\) per core|Core\(s\) per socket|Socket\(s\)):' || true
+            echo
+            echo "memory:"
+            free -h
+          } | tee benchmark-environment.txt
+
+      # Enforce broad relative performance budgets before recording raw numbers.
+      - name: Run performance guards
+        run: bun run test:performance
+
+      # Execute the checked-in CV/CX/CN comparison benchmark.
+      - name: Run benchmark suite
+        run: bun run bench | tee benchmark-results.txt
+
+      # Publish the raw comparison directly on the workflow summary page.
+      - name: Publish benchmark summary
+        shell: bash
+        run: |
+          {
+            echo "## @obvia/cv benchmark"
+            echo
+            echo '```text'
+            cat benchmark-results.txt
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      # Preserve the environment and raw benchmark output for later comparison.
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-${{ github.run_id }}
+          path: |
+            benchmark-environment.txt
+            benchmark-results.txt
+          if-no-files-found: error
+          retention-days: 30
