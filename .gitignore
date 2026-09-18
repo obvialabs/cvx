@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.tgz
+.DS_Store
+coverage/
+
+.idea/
+benchmark-results.txt
+benchmark-results.json
+benchmark-results.md
+benchmark-environment.txt
