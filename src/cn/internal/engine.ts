@@ -1,25 +1,12 @@
-// cn — a build-time-compiled, single-pass, allocation-free Tailwind class
-// merger. Architecture:
-//
-//   scan:     one pass finds token bounds + a fused full FNV hash (the scan
-//             reads every char anyway, so hashing rides along); all
-//             structural parsing (variants, '!', '/') is deferred to the
-//             memo-miss path, where the base feeds a compiled radix automaton
-//             that classifies while scanning — no split() arrays, no per-part
-//             Map hashing, no parse objects.
-//   context:  variant prefixes intern to dense integer context ids via span
-//             hashing (substring materialized once per unique prefix);
-//             canonicalization (segment-sorted variants, important bit) runs
-//             once per unique raw prefix, ever.
-//   conflict: no-variant static claims stamp an epoch array indexed by group
-//             id; variant contexts and dynamic groups share an epoch-stamped
-//             hash set keyed (ctxId, gid). A kept token walks its compiled
-//             conflict adjacency row to claim the groups it overrides; a
-//             token is dropped iff its own (ctx, group) is already claimed.
-//   emit:     span-based — survivors are sliced from the input exactly once;
-//             a no-op merge returns the input string itself.
-//
-// Comments are free (stripped by minifiers); code is sized deliberately.
+/**
+ * Single-pass Tailwind conflict engine used by `cn`.
+ *
+ * The hot path scans class strings into packed radix-table lookups, interns
+ * modifier contexts, records conflict claims, and emits surviving spans. The
+ * implementation avoids token arrays and parse objects on common paths.
+ *
+ * @internal
+ */
 
 import type {
   ClassNameValue,

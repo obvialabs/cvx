@@ -1,8 +1,12 @@
-// Custom-config entry (`cn/config`, re-exported from `cn`): create a `cn`
-// with a tailwind-merge–style config extension, compiled at first call
-// (~3 ms once, then full engine speed). For zero-compile production setups,
-// run the compiler at build time instead (`npx cn build`) and pair the
-// emitted tables with `createCn` from `cn/engine`.
+/**
+ * Internal configuration bridge for the `cn` domain.
+ *
+ * CVX does not expose configuration helpers publicly. These factories exist so
+ * generated tables, differential tests, and future build-time tooling can share
+ * one compiler contract without expanding the npm API surface.
+ *
+ * @internal
+ */
 
 import {
   compileToTables,
@@ -85,16 +89,10 @@ const buildEngine = (input?: CreateCnInput): Engine => {
 }
 
 /**
- * Create a `cn` function for a custom config. Accepts a tailwind-merge–style
- * `{ extend, override, prefix }` extension, a `(defaultConfig) => config`
- * transform, or a complete config. Compilation is lazy: the first call pays
- * ~3 ms once, every later call runs at full engine speed.
+ * Creates an isolated conflict-aware composer for internal verification and
+ * tooling. Compilation is lazy and never participates in the public root API.
  *
- * ```ts
- * const cn = createCn({
- *     extend: { classGroups: { "font-size": [{ text: ["hero", "tiny"] }] } },
- * })
- * ```
+ * @internal
  */
 export const createCn = (input?: CreateCnInput): CnFunction => {
   let engine: Engine | null = null
@@ -106,8 +104,9 @@ export const createCn = (input?: CreateCnInput): CnFunction => {
 }
 
 /**
- * tailwind-merge–compatible variadic merge for a custom config — the
- * `extendTailwindMerge` migration path.
+ * Creates the lower-level string merge form used by differential tests.
+ *
+ * @internal
  */
 export const createTwMerge = (input?: CreateCnInput): Engine["merge"] => {
   let engine: Engine | null = null
@@ -118,8 +117,5 @@ export const createTwMerge = (input?: CreateCnInput): Engine["merge"] => {
   } as Engine["merge"]
 }
 
-/**
- * Familiar-name alias for tailwind-merge migrations:
- * `extendTailwindMerge(ext)` ≡ `createTwMerge(ext)`.
- */
+/** @internal Compatibility alias retained only inside the `cn` domain. */
 export const extendTailwindMerge = createTwMerge

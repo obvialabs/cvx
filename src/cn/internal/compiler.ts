@@ -1,15 +1,13 @@
-// The cn compiler: turns a tailwind-merge–shaped config into the flat packed
-// tables the engine consumes. Two outputs from one pipeline:
-//
-//   compileToTables(config)  → in-memory Tables (runtime custom configs)
-//   compileToSource(config)  → packed ES module source (CLI / checked-in tables)
-//
-// Config definitions accept three value forms interchangeably:
-//   - plain strings / nested objects (as in tailwind-merge configs)
-//   - marker objects {$v: 'isNumber'} (validator) and {$t: 'spacing'} (theme
-//     scale) — the JSON-safe form used by the vendored default config
-//   - functions: tailwind-merge theme getters (fn.isThemeGetter) and validator
-//     predicates (any other function; compiled as custom validators)
+/**
+ * Compiles Tailwind conflict configuration into the packed tables consumed by
+ * the CVX `cn` runtime. The compiler is intentionally package-private: normal
+ * applications execute only the generated tables and never pay this cost.
+ *
+ * The pipeline accepts literal groups, theme references, and validators, then
+ * emits either in-memory tables or generated module source.
+ *
+ * @internal
+ */
 
 import type { Tables, ValidatorImpls } from "./types.js"
 import * as refValidators from "./validators.js"
@@ -46,13 +44,7 @@ export interface ConfigExtension {
   extend?: Partial<ConfigExtensionGroups>
 }
 
-/**
- * Accepted config input: an `{ extend, override, prefix }` extension, a
- * `(defaultConfig) => config` transform, or a complete config. Lives here
- * (not in config.ts) so the `index` entry can re-export it without pulling
- * config.ts into a shared declaration chunk that collides with the
- * `cn/config` entry's own d.ts filename.
- */
+/** Internal configuration input accepted by the table compiler. */
 export type CreateCnInput =
   ConfigExtension | ((config: CnConfig) => CnConfig) | CnConfig
 

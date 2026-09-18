@@ -1,7 +1,10 @@
-// Validator predicates with semantics identical to tailwind-merge 3.6.0's
-// src/lib/validators.ts (MIT, Dany Castillo — see README.md). The runtime
-// engine compiles these to span opcodes; these plain-string implementations
-// are used by the compiler's classifier and by custom configs.
+/**
+ * Tailwind token validators shared by the conflict compiler and custom-table
+ * verification paths. Runtime default tables compile these predicates into
+ * compact opcodes whenever possible.
+ *
+ * @internal
+ */
 
 const arbitraryValueRegex = /^\[(?:(\w[\w-]*):)?(.+)\]$/i
 const arbitraryVariableRegex = /^\((?:(\w[\w-]*):)?(.+)\)$/i
