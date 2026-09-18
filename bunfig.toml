@@ -1,0 +1,16 @@
+[test]
+# Coverage is requested explicitly through `bun run test:coverage`; ordinary
+# test commands stay fast without a global coverage toggle. Do not set
+# `coverage = false` here: Bun treats an explicit false value as authoritative
+# and it suppresses the CLI `--coverage` flag as well.
+
+# Test files are verification code, not part of the CVX runtime surface whose
+# coverage we want to measure.
+coverageSkipTestFiles = true
+
+# Keep executable source coverage high without counting generated lookup data as
+# hand-authored behavior. Differential/property suites cover semantic breadth.
+coverageThreshold = { lines = 0.90, functions = 0.90, statements = 0.90 }
+coveragePathIgnorePatterns = ["src/merge/*.generated.ts"]
+coverageReporter = ["text", "lcov"]
+coverageDir = "coverage"
