@@ -1,344 +1,315 @@
-# @obvia/cv
+# @obvia/cvx
 
 [![tests](https://github.com/obvialabs/cvx/actions/workflows/tests.yml/badge.svg)](https://github.com/obvialabs/cvx/actions/workflows/tests.yml)
 [![coverage](https://github.com/obvialabs/cvx/actions/workflows/coverage.yml/badge.svg)](https://github.com/obvialabs/cvx/actions/workflows/coverage.yml)
 [![benchmark](https://github.com/obvialabs/cvx/actions/workflows/benchmark.yml/badge.svg)](https://github.com/obvialabs/cvx/actions/workflows/benchmark.yml)
 
-> Three primitives. One package. Compiled variants, lightweight class composition, and Tailwind-aware conflict resolution.
+> Three functions. One type helper. Compiled variants and Tailwind-aware class composition without runtime dependencies.
 
-`@obvia/cv` brings `cv`, `cx`, and `cn` together in one deeply typed, zero-runtime-dependency package for modern TypeScript applications. It keeps class composition predictable, variant evaluation fast, and Tailwind CSS conflict resolution available without maintaining separate runtime utilities.
+`@obvia/cvx` combines typed class variants, general class-value composition, and Tailwind CSS conflict resolution behind one intentionally small public API.
 
-- **`cv` for variants** — compiled variants, defaults, compound variants, composition, class overrides, internal variants, and schema introspection.
-- **`cx` for composition** — lightweight class-value normalization for strings, numbers, bigint values, nested arrays, and conditional object syntax.
-- **`cn` for Tailwind** — the same ergonomic class-value input with compiled Tailwind CSS conflict resolution.
-- **Deep TypeScript support** — variant props, defaults, composition, configuration, and schema contracts remain strongly typed.
-- **Measured performance** — dedicated Bun benchmarks compare equivalent workloads against `class-variance-authority`, `cva`, `clsx`, and `tailwind-merge`.
-- **Comprehensive verification** — behavior, unit, property, guard, type, coverage, and performance regression suites exercise the public API and internal invariants.
-- **Zero runtime dependencies** — dual ESM/CommonJS builds, bundled declarations, source maps, Tailwind CSS entry, and Bun-first runtime verification.
+- **`cv` for variants** — typed variants, defaults, compound variants, composition, boolean/numeric values, and runtime class overrides.
+- **`cn` for Tailwind classes** — accepts the same class-value grammar as `cx` and resolves conflicting Tailwind utilities.
+- **`cx` for composition** — fast recursive class-value normalization without Tailwind conflict resolution.
+- **`VariantProps` for inference** — extracts the public variant props of a `cv` component.
+- **Compiled hot paths** — bounded variant spaces are prepared once and resolved through lazy dense lookup tables when profitable.
+- **Zero runtime dependencies** — the published package ships its own runtime implementation with ESM and CommonJS builds.
+- **One public entrypoint** — no configuration, schema, compiler, or Tailwind stylesheet subpath APIs.
 
 ## Installation
 
-There is only one package to install: **use `cx()` for composition, `cn()` when Tailwind conflicts must be resolved, and `cv()` when classes depend on variants.**
-
 ```bash
-bun add @obvia/cv
+bun add @obvia/cvx
 ```
+
+The package can also be installed with another npm-compatible package manager.
 
 ## Quick start
 
-There are three primitives to learn, all exported from the same package.
-
 ```ts
-import { cn, cv, cx } from "@obvia/cv"
-
-cx("p-2", "p-4")
-// "p-2 p-4"
-
-cn("p-2", "p-4")
-// "p-4"
+import { cn, cv, cx, type VariantProps } from "@obvia/cvx"
 
 const button = cv({
     base: "inline-flex items-center rounded-md font-medium",
     variants: {
         intent: {
-            primary: "bg-black text-white",
-            secondary: "bg-white text-black",
+            primary: "bg-blue-600 text-white",
+            secondary: "bg-white text-slate-900",
         },
         size: {
-            sm: "h-8 px-3",
+            sm: "h-8 px-3 text-sm",
             md: "h-10 px-4",
+            lg: "h-12 px-6 text-lg",
+        },
+        disabled: {
+            true: "cursor-not-allowed opacity-50",
+            false: "cursor-pointer",
         },
     },
     defaultVariants: {
         intent: "primary",
         size: "md",
+        disabled: false,
     },
-    compoundVariants: [
-        {
-            intent: "primary",
-            size: "md",
-            class: "font-semibold",
-        },
-    ],
 })
 
-button({ intent: "secondary" })
+type ButtonVariants = VariantProps<typeof button>
+
+button({ intent: "secondary", size: "lg" })
+cn("px-2", "px-4")
+cx("button", true && "active", { disabled: false })
 ```
-
-`cv` supports base classes, typed variants, default variants, compound variants, component composition, `class` / `className`, internal variants, booleans, numeric variants, custom class composers, and schema introspection.
-
-`cx` only normalizes and concatenates class values, so authored utilities are never interpreted or removed:
-
-```ts
-cx("text-sm", "text-lg")
-// "text-sm text-lg"
-```
-
-`cn` resolves Tailwind conflicts while preserving unrelated utilities, modifiers, arbitrary values, and conditional class inputs:
-
-```ts
-cn(
-    "rounded-md p-2 text-sm",
-    true && "p-4",
-    { "text-lg": true },
-)
-// "rounded-md p-4 text-lg"
-```
-
-The class pipelines can also be configured independently. Passing `cn` as the `cx` implementation makes a configured `cv` runtime conflict-aware without changing the default `cv` semantics:
-
-```ts
-import { cn, configure } from "@obvia/cv"
-
-const { cv } = configure({ cx: cn })
-
-const button = cv({
-    base: "p-2 p-4",
-})
-
-button()
-// "p-4"
-```
-
-Advanced Tailwind merge configuration is available from `@obvia/cv/config`, schema introspection from `@obvia/cv/schema`, and the optional Tailwind CSS v4 stylesheet entry from `@obvia/cv/tailwindcss`.
 
 ## Advanced
 
-The default API is intentionally small, but each primitive can be used independently or combined into a more specialized class pipeline.
+### Public API
 
-### `cx` — class-value composition
-
-`cx` is the lowest-level primitive. It normalizes class values and concatenates them in author order without interpreting CSS or resolving conflicts.
+CVX intentionally exposes only one package entrypoint:
 
 ```ts
-import { cx } from "@obvia/cv"
-
-cx(
-    "inline-flex",
-    ["items-center", ["gap-2"]],
-    { "opacity-50": false, "cursor-pointer": true },
-    42,
-    10n,
-)
-// "inline-flex items-center gap-2 cursor-pointer 42 10"
+import { cn, cv, cx, type VariantProps } from "@obvia/cvx"
 ```
 
-Supported values include strings, numbers, bigint values, nested arrays, conditional object maps, booleans, `null`, and `undefined`. Falsy control values are ignored while truthy object keys are emitted as classes.
+There are no public `/config`, `/schema`, `/tailwindcss`, compiler, merge-engine, or generated-table entrypoints. Those concerns are implementation details and may evolve without expanding the application-facing API.
 
-Unlike `cn`, `cx` never tries to understand Tailwind utility relationships:
+### `cx`: class-value composition
+
+`cx()` normalizes class values into one space-delimited string. It does not understand Tailwind conflict groups.
 
 ```ts
-cx("p-2", "p-4", "text-sm", "text-lg")
-// "p-2 p-4 text-sm text-lg"
+import { cx } from "@obvia/cvx"
+
+cx("button", "active")
+// "button active"
+
+cx("button", false && "hidden", null, undefined)
+// "button"
+
+cx(["button", ["active", ["rounded"]]])
+// "button active rounded"
+
+cx({ active: true, disabled: false })
+// "active"
 ```
 
-Use `cx` when authored class order must be preserved exactly or when the input is not Tailwind-specific.
-
-### `cn` — Tailwind-aware composition
-
-`cn` accepts the same ergonomic class-value inputs as `cx`, then resolves conflicting Tailwind utilities so the later applicable utility wins.
+Strings, numbers, bigints, booleans, nested arrays, conditional dictionaries, `null`, and `undefined` are accepted. Falsy class values are ignored.
 
 ```ts
-import { cn } from "@obvia/cv"
+cx("item", 2, 3n, { selected: true })
+// "item 2 3 selected"
+```
 
+Use `cx` when order should be preserved exactly and conflicting utility classes must remain untouched:
+
+```ts
+cx("px-2", "px-4")
+// "px-2 px-4"
+```
+
+### `cn`: Tailwind-aware composition
+
+`cn()` accepts the same application-facing class-value grammar as `cx`, then resolves Tailwind utility conflicts.
+
+```ts
+import { cn } from "@obvia/cvx"
+
+cn("px-2", "px-4")
+// "px-4"
+
+cn("text-sm", "font-semibold", "text-lg")
+// "font-semibold text-lg"
+```
+
+Conditional and nested values can be mixed directly:
+
+```ts
 cn(
-    "rounded-md p-2 text-sm",
-    ["hover:p-3", { "p-4": true }],
-    "text-lg",
+    "rounded-md px-2",
+    active && "bg-blue-600",
+    ["px-4", { "opacity-50": disabled }],
 )
-// "rounded-md hover:p-3 p-4 text-lg"
 ```
 
-Non-conflicting utilities are retained, while conflicting utilities are reduced according to Tailwind-aware class groups, modifiers, arbitrary values, important modifiers, and related conflict rules.
+#### Modifiers
+
+Conflicts are scoped by their modifier context:
 
 ```ts
-cn("px-2", "py-4")
-// "px-2 py-4"
+cn("p-2", "hover:p-2", "hover:p-4")
+// "p-2 hover:p-4"
 
-cn("p-2", "p-4")
-// "p-4"
-
-cn("hover:p-2", "hover:p-4", "focus:p-3")
-// "hover:p-4 focus:p-3"
+cn("md:text-sm", "lg:text-lg", "md:text-xl")
+// "lg:text-lg md:text-xl"
 ```
 
-Use `cn` at component boundaries where consumer-provided Tailwind classes should be able to override authored defaults.
+#### Important utilities
 
-### `twJoin` and `twMerge`
-
-The root entry also exports lower-level helpers for migration and interoperability.
+Important utilities are resolved independently from ordinary utilities:
 
 ```ts
-import { twJoin, twMerge } from "@obvia/cv"
-
-twJoin("p-2", ["p-4", ["text-sm"]])
-// "p-2 p-4 text-sm"
-
-twMerge("p-2", ["p-4", "text-sm"], "text-lg")
-// "p-4 text-lg"
+cn("p-2", "!p-2", "!p-4")
+// "p-2 !p-4"
 ```
 
-`twJoin` joins Tailwind-shaped string / nested-array input without conflict resolution. `twMerge` performs conflict resolution for already Tailwind-shaped input. For normal application code, prefer `cx` and `cn`; these helpers exist for lower-level use and migration paths.
-
-### `cv` — compiled variants
-
-`cv` creates a reusable class component from a static definition. The definition is prepared once and the runtime selects the classes required for each call.
+#### Arbitrary values and properties
 
 ```ts
-import { cv } from "@obvia/cv"
+cn("w-[10px]", "w-[24px]")
+// "w-[24px]"
+
+cn("[color:red]", "[color:blue]")
+// "[color:blue]"
+```
+
+The Tailwind conflict model is packaged internally. Applications do not need to import a stylesheet or configure a second merge library for the default `cn` behavior.
+
+### `cv`: variant definitions
+
+`cv()` creates a callable component-class resolver from one definition.
+
+```ts
+import { cv } from "@obvia/cvx"
 
 const badge = cv({
-    base: "inline-flex items-center rounded-full font-medium",
+    base: "inline-flex rounded-full",
     variants: {
         tone: {
-            neutral: "bg-zinc-100 text-zinc-900",
-            success: "bg-emerald-100 text-emerald-900",
+            neutral: "bg-slate-100 text-slate-900",
+            success: "bg-green-100 text-green-900",
             danger: "bg-red-100 text-red-900",
         },
         size: {
-            sm: "h-5 px-2 text-xs",
-            md: "h-6 px-2.5 text-sm",
+            sm: "px-2 py-0.5 text-xs",
+            md: "px-3 py-1 text-sm",
         },
-    },
-    defaultVariants: {
-        tone: "neutral",
-        size: "md",
     },
 })
 
-badge()
-badge({ tone: "success" })
-```
-
-The returned component is callable and also exposes its normalized configuration through the read-only `config` property.
-
-```ts
-badge.config.variants
-badge.config.defaultVariants
+badge({ tone: "success", size: "sm" })
 ```
 
 ### Base classes
 
-`base` is emitted before variant and compound classes.
+`base` is emitted before variant and compound classes:
 
 ```ts
 const card = cv({
-    base: "rounded-xl border bg-white shadow-sm",
+    base: "rounded-xl border bg-white",
 })
 
 card()
-// "rounded-xl border bg-white shadow-sm"
+// "rounded-xl border bg-white"
 ```
 
-Static components without variants use a dedicated fast path. Runtime `class` or `className` values can still be appended when the component is called.
-
-### Variants
-
-Variant keys and values are inferred directly from the configuration.
-
-```ts
-const button = cv({
-    variants: {
-        intent: {
-            primary: "bg-black text-white",
-            secondary: "bg-white text-black",
-        },
-        size: {
-            sm: "h-8 px-3",
-            md: "h-10 px-4",
-        },
-    },
-})
-
-button({ intent: "primary", size: "sm" })
-```
-
-Boolean and numeric variant values are supported without forcing string values at the call site.
+Base values use the same class-value grammar as `cx`, so arrays and dictionaries are valid:
 
 ```ts
 const item = cv({
-    variants: {
-        active: {
-            true: "font-semibold",
-            false: "opacity-70",
-        },
-        columns: {
-            1: "grid-cols-1",
-            2: "grid-cols-2",
-            3: "grid-cols-3",
-        },
-    },
+    base: ["item", { interactive: true }],
 })
-
-item({ active: true, columns: 2 })
 ```
 
 ### Default variants
 
-`defaultVariants` provides values used when a call does not explicitly select a variant.
+Defaults apply when a variant is omitted:
 
 ```ts
-const button = cv({
+const text = cv({
     variants: {
-        size: {
-            sm: "h-8",
-            md: "h-10",
+        tone: {
+            normal: "text-slate-900",
+            muted: "text-slate-500",
         },
     },
     defaultVariants: {
-        size: "md",
+        tone: "normal",
     },
 })
 
-button()
-// "h-10"
+text()
+// "text-slate-900"
 ```
 
-Explicit props override defaults. Composed components also inherit defaults from their parents, with the nearest authored default taking precedence.
+An `undefined`, `null`, or empty-string runtime selection falls back to the configured default where applicable.
+
+### Boolean variants
+
+String keys `true` and `false` become boolean props:
+
+```ts
+const control = cv({
+    variants: {
+        disabled: {
+            true: "opacity-50",
+            false: "opacity-100",
+        },
+    },
+})
+
+control({ disabled: true })
+```
+
+### Numeric variants
+
+Numeric-looking keys can be selected with numbers:
+
+```ts
+const depth = cv({
+    variants: {
+        level: {
+            0: "shadow-none",
+            1: "shadow-sm",
+            2: "shadow-md",
+        },
+    },
+})
+
+depth({ level: 2 })
+```
 
 ### Compound variants
 
-`compoundVariants` adds classes when several selections match at the same time.
+Compound variants emit classes only when every selector matches:
 
 ```ts
 const button = cv({
     variants: {
         intent: {
-            primary: "bg-black",
-            secondary: "bg-white",
+            primary: "bg-blue-600",
+            danger: "bg-red-600",
         },
         size: {
             sm: "h-8",
-            md: "h-10",
+            lg: "h-12",
         },
     },
     compoundVariants: [
         {
-            intent: "primary",
-            size: "md",
-            class: "shadow-md",
+            intent: "danger",
+            size: "lg",
+            class: "ring-2 ring-red-300",
         },
     ],
 })
 ```
 
-A compound selector can also match more than one value by using an array.
+A selector can match several values:
 
 ```ts
 compoundVariants: [
     {
-        intent: ["primary", "secondary"],
-        size: "md",
-        class: "font-semibold",
+        intent: ["primary", "danger"],
+        size: ["sm", "lg"],
+        className: "font-semibold",
     },
 ]
 ```
 
-Both `class` and `className` are understood by compound definitions.
+Both `class` and `className` are accepted in authored compound variants.
 
-### Runtime `class` and `className`
+### Runtime class overrides
 
-Every component accepts one runtime class override property. TypeScript intentionally models `class` and `className` as mutually exclusive inputs.
+Generated components accept a final `class` or `className` value:
 
 ```ts
 button({
@@ -347,87 +318,112 @@ button({
 })
 ```
 
-The default `cv` pipeline uses `cx`, so these classes are appended without Tailwind conflict removal. To make runtime overrides conflict-aware, configure `cv` to use `cn`.
+These values are appended after the generated variant output. `cv` itself uses composition semantics rather than Tailwind conflict removal; use `cn()` at the application boundary when a final conflict-aware merge is desired:
+
+```ts
+cn(button({ intent: "primary" }), "bg-black")
+```
 
 ### Composition
 
-Components can compose one component or a tuple of components through `composes`. Variants and defaults are merged into the resulting component and remain typed at the call site.
+A `cv` component can compose another component or a tuple of components:
 
 ```ts
-const tone = cv({
+const typography = cv({
     variants: {
-        tone: {
-            neutral: "text-zinc-900",
-            danger: "text-red-700",
+        weight: {
+            normal: "font-normal",
+            bold: "font-bold",
         },
     },
     defaultVariants: {
-        tone: "neutral",
+        weight: "normal",
     },
 })
 
-const size = cv({
+const spacing = cv({
     variants: {
         size: {
-            sm: "text-sm",
-            lg: "text-lg",
+            sm: "px-2 py-1",
+            lg: "px-5 py-3",
         },
+    },
+    defaultVariants: {
+        size: "sm",
     },
 })
 
-const heading = cv({
-    composes: [tone, size],
-    base: "font-semibold tracking-tight",
+const button = cv({
+    composes: [typography, spacing],
+    base: "inline-flex items-center",
     defaultVariants: {
+        weight: "bold",
         size: "lg",
     },
 })
-
-heading({ tone: "danger", size: "sm" })
 ```
 
-Composition can be nested. CVX-created components are internally composed as prepared programs, while compatible foreign callable components can still participate through the general composition path.
+Composed variants remain available on the resulting component, and parent defaults can retune child defaults.
+
+### Nested composition
+
+Composition can be nested without manually forwarding variant props:
+
+```ts
+const base = cv({
+    variants: {
+        tone: { calm: "text-slate-700", loud: "text-black" },
+    },
+})
+
+const middle = cv({ composes: base, base: "font-medium" })
+const final = cv({ composes: middle, base: "tracking-tight" })
+
+final({ tone: "loud" })
+```
+
+CVX recognizes its own composed components internally and executes their prepared programs directly instead of stacking unnecessary public wrappers.
 
 ### Internal variants
 
-Variant names beginning with `_` are treated as internal variants for public type extraction and schema introspection.
+Variant names beginning with `_` can participate in runtime resolution while being omitted from `VariantProps`:
 
 ```ts
 const component = cv({
     variants: {
         tone: {
-            normal: "text-zinc-900",
-            muted: "text-zinc-500",
+            primary: "text-blue-600",
+            danger: "text-red-600",
         },
         _density: {
             compact: "gap-1",
-            roomy: "gap-4",
+            comfortable: "gap-3",
         },
     },
-    defaultVariants: {
-        _density: "compact",
-    },
 })
+
+type Props = VariantProps<typeof component>
+// Props contains `tone`, but not `_density`.
 ```
 
-The component itself can use `_density`, but `VariantProps<typeof component>` and `getSchema(component)` intentionally omit it. This is useful for implementation-level variant state that should not become part of a component's exported consumer contract.
+This is useful for composition details that should remain implementation-specific to a component family.
 
-### Extracting variant props
+### `VariantProps`
 
-Use `VariantProps` to derive only the consumer-facing variant selection from a component.
+Use `VariantProps` to derive the public variant API from a `cv` component:
 
 ```ts
-import { cv, type VariantProps } from "@obvia/cv"
+import { cv, type VariantProps } from "@obvia/cvx"
 
 const button = cv({
     variants: {
         intent: {
-            primary: "bg-black",
+            primary: "bg-blue-600",
             secondary: "bg-white",
         },
-        disabled: {
-            true: "opacity-50",
-            false: "",
+        size: {
+            sm: "h-8",
+            md: "h-10",
         },
     },
 })
@@ -435,315 +431,106 @@ const button = cv({
 type ButtonVariants = VariantProps<typeof button>
 ```
 
-`VariantProps` removes `class`, `className`, and `_`-prefixed internal variants from the extracted public type.
+`VariantProps` excludes `class`, `className`, and `_`-prefixed internal variants so component-level props stay focused on the public variant contract.
 
-### Configuring the runtime
+### TypeScript inference
 
-`configure()` creates an isolated `{ cv, cx, cn }` set without mutating the default exports.
-
-```ts
-import { cn, configure } from "@obvia/cv"
-
-const ui = configure({
-    cx: cn,
-    compileLimit: 1024,
-})
-
-ui.cv({
-    base: "p-2 p-4",
-})()
-// "p-4"
-```
-
-The available options are:
-
-- **`cx`** — class composer used internally by the configured `cv` and returned as the configured `cx`.
-- **`cn`** — conflict-aware merger returned as the configured `cn`.
-- **`compileLimit`** — maximum dense variant combination count that CVX may lazily compile for the configured engine. The default is `512`; set it to `0` to disable dense-table compilation.
-
-`cx` and `cn` are independent. Replacing one does not implicitly replace the other.
-
-### Dense variant compilation
-
-The default engine can lazily compile bounded variant spaces into a dense lookup table. This is an implementation optimization and does not change component semantics.
+Variant keys and values are inferred from the definition:
 
 ```ts
-const fast = configure({ compileLimit: 1024 }).cv
-const general = configure({ compileLimit: 0 }).cv
-```
-
-`compileLimit` caps the number of possible combinations eligible for dense compilation. Configurations that exceed the limit, require unsupported lookup shapes, or use foreign composition automatically remain on the general evaluation path.
-
-This option is primarily useful for benchmarking, diagnostics, or highly specialized runtimes; application code normally does not need to change it.
-
-### Custom Tailwind merge configuration
-
-Advanced Tailwind configuration lives under `@obvia/cv/config` so the default root bundle does not need to pull the configuration compiler into the normal import graph.
-
-```ts
-import { createCn } from "@obvia/cv/config"
-
-const cn = createCn({
-    extend: {
-        classGroups: {
-            "font-size": [
-                {
-                    text: ["hero", "tiny"],
-                },
-            ],
-        },
-    },
-})
-
-cn("text-sm", "text-hero")
-// "text-hero"
-```
-
-Custom configuration is compiled lazily on first use and then reuses the compiled merge engine.
-
-### `createCn`
-
-`createCn()` creates a class-value-aware `cn` function with a custom merge configuration.
-
-It accepts:
-
-- a Tailwind-merge-style extension object,
-- a function that receives the default configuration and returns a configuration,
-- or a complete configuration object.
-
-```ts
-import { createCn } from "@obvia/cv/config"
-
-const withDefaultConfig = createCn((config) => ({
-    ...config,
-    prefix: "tw-",
-}))
-
-const withLargerCache = createCn({
-    cacheSize: 1000,
-})
-```
-
-### Extending, overriding, prefixes, and cache size
-
-Custom merge configuration supports `extend`, `override`, `prefix`, and `cacheSize`.
-
-```ts
-import { createCn } from "@obvia/cv/config"
-
-const cn = createCn({
-    prefix: "tw-",
-    cacheSize: 1000,
-    extend: {
-        classGroups: {
-            "font-size": [{ text: ["hero"] }],
-        },
-    },
-})
-```
-
-Use `extend` to append to the default Tailwind model and `override` when a group should replace the default definition. `prefix` configures prefixed Tailwind utility recognition, while `cacheSize` controls the custom merge engine's result cache.
-
-### `createTwMerge` and `extendTailwindMerge`
-
-Use `createTwMerge()` when you specifically need the lower-level `twMerge`-compatible variadic API.
-
-```ts
-import {
-    createTwMerge,
-    extendTailwindMerge,
-} from "@obvia/cv/config"
-
-const merge = createTwMerge({
-    extend: {
-        classGroups: {
-            "font-size": [{ text: ["hero"] }],
-        },
-    },
-})
-
-merge("text-sm", "text-hero")
-```
-
-`extendTailwindMerge` is an alias of `createTwMerge` for familiar migration semantics.
-
-### Theme references and validators
-
-`fromTheme()` and `validators` provide compiler-recognized markers for custom class-group definitions.
-
-```ts
-import {
-    createCn,
-    fromTheme,
-    validators,
-} from "@obvia/cv/config"
-
-const cn = createCn({
-    extend: {
-        classGroups: {
-            spacing: [{ gap: [fromTheme("spacing")] }],
-            "font-size": [
-                {
-                    text: ["hero", validators.isArbitraryLength],
-                },
-            ],
-        },
-    },
-})
-```
-
-Marker validators are preferred for custom groups because the merge compiler can convert them into its optimized internal representation.
-
-### Configuration utilities
-
-The config entry also exports `defaultConfig` and `mergeConfigs` for tooling or advanced configuration composition.
-
-```ts
-import {
-    defaultConfig,
-    mergeConfigs,
-} from "@obvia/cv/config"
-
-const config = mergeConfigs(defaultConfig(), {
-    extend: {
-        classGroups: {
-            "font-size": [{ text: ["hero"] }],
-        },
-    },
-})
-```
-
-These APIs are intended for advanced integration code. Most applications only need the root `cn` export or `createCn()`.
-
-### Schema introspection
-
-`@obvia/cv/schema` exposes a typed schema representation of public variants.
-
-```ts
-import { cv } from "@obvia/cv"
-import { getSchema } from "@obvia/cv/schema"
-
 const button = cv({
     variants: {
         size: {
-            sm: "h-8",
-            md: "h-10",
+            sm: "text-sm",
+            md: "text-base",
         },
-        disabled: {
-            true: "opacity-50",
-            false: "",
-        },
-        _internal: {
-            on: "internal-on",
-            off: "internal-off",
-        },
-    },
-    defaultVariants: {
-        size: "md",
-        disabled: false,
-        _internal: "off",
     },
 })
 
-getSchema(button)
-// {
-//     size: { values: ["sm", "md"], defaultValue: "md" },
-//     disabled: { values: [true, false], defaultValue: false },
-// }
+button({ size: "sm" })
+// button({ size: "xl" }) // TypeScript error
 ```
 
-Schema values preserve boolean and numeric variant semantics rather than exposing every key as a string. Internal `_`-prefixed variants are excluded.
+Boolean and numeric variant keys keep their ergonomic runtime types, and composed components merge their variant contracts.
 
-### Tailwind CSS v4 entry
+### Runtime architecture
 
-The optional stylesheet entry can be imported when the package's Tailwind v4 custom variant is useful to the application.
+CVX keeps implementation details out of the public API but uses specialized internal paths:
 
-```css
-@import "@obvia/cv/tailwindcss";
-```
+- `cx` owns the canonical class-value grammar and allocation-conscious composition path.
+- `cn` owns a packed Tailwind conflict engine backed by generated lookup tables.
+- `cv` prepares variant metadata, compound selectors, composition relationships, and dense lookup dimensions when a component is created.
+- Small bounded variant spaces can use lazy dense result slots after preparation.
+- Larger or dynamic shapes fall back to the general prepared executor without changing observable behavior.
+- Generated Tailwind tables and compiler/configuration utilities remain package-private.
 
-This entry defines the `base` custom variant and is published as side-effectful CSS separately from the JavaScript API.
+There are no public performance tuning knobs. CVX selects its execution path internally so application code does not depend on compiler or cache implementation details.
 
-### Package entry points
+### Module formats
 
-CVX intentionally keeps the default import surface compact while advanced functionality lives behind subpath exports.
+The package is built with `tsdown` and publishes both ESM and CommonJS runtime outputs from the same root entrypoint.
+
+ESM:
 
 ```ts
-import { cn, cv, cx, configure, twJoin, twMerge } from "@obvia/cv"
-import { createCn, createTwMerge } from "@obvia/cv/config"
-import { getSchema } from "@obvia/cv/schema"
+import { cn, cv, cx } from "@obvia/cvx"
 ```
 
-Available package entry points are:
+CommonJS:
 
-- **`@obvia/cv`** — `cv`, `cx`, `cn`, `configure`, `twJoin`, `twMerge`, and public types.
-- **`@obvia/cv/config`** — custom Tailwind merge configuration and configuration types.
-- **`@obvia/cv/schema`** — typed variant schema introspection.
-- **`@obvia/cv/tailwindcss`** — optional Tailwind CSS v4 stylesheet entry.
-
-### ESM and CommonJS
-
-The package publishes both ESM and CommonJS JavaScript builds together with generated TypeScript declarations and source maps. The package manager and verification workflow are Bun-first, while the distributed JavaScript entry points are not restricted to Bun-only consumption.
+```js
+const { cn, cv, cx } = require("@obvia/cvx")
+```
 
 ## Performance
 
-The benchmark suite is built to produce comparable workload-level numbers rather than one blended marketing estimate. It uses Bun-based microbenchmarks and keeps class composition, defaults, explicit variants, rotating variants, compound-heavy definitions, stable Tailwind merging, and rotating Tailwind merging as separate scenarios.
+The benchmark suite compares equivalent workloads instead of presenting one synthetic headline number. It includes class composition, defaults and compounds, explicit and rotating variants, compound-heavy definitions, and Tailwind conflict merging.
 
-The latest recorded local benchmark run measured:
+A recent Bun run produced:
 
-| Workload | @obvia/cv | Equivalent baseline | Relative |
+| Workload | @obvia/cvx | Baseline | Relative |
 | --- | ---: | ---: | ---: |
-| Class composition | **44.32 ns/op** | `class-variance-authority@0.7.1`: 68.89 ns/op | **1.55x faster** |
-| Class composition | **44.32 ns/op** | `cva@1 beta`: 103.79 ns/op | **2.34x faster** |
-| Defaults + compounds | **39.39 ns/op** | `class-variance-authority@0.7.1`: 978.98 ns/op | **24.85x faster** |
-| Defaults + compounds | **39.39 ns/op** | `cva@1 beta`: 169.75 ns/op | **4.31x faster** |
-| Explicit variants | **28.54 ns/op** | `class-variance-authority@0.7.1`: 1420.33 ns/op | **49.76x faster** |
-| Explicit variants | **28.54 ns/op** | `cva@1 beta`: 267.36 ns/op | **9.37x faster** |
-| Rotating variants | **47.34 ns/op** | `class-variance-authority@0.7.1`: 1234.81 ns/op | **26.08x faster** |
-| Rotating variants | **47.34 ns/op** | `cva@1 beta`: 251.33 ns/op | **5.31x faster** |
-| Compound-heavy | **27.84 ns/op** | `class-variance-authority@0.7.1`: 12875.12 ns/op | **462.54x faster** |
-| Compound-heavy | **27.84 ns/op** | `cva@1 beta`: 1097.36 ns/op | **39.42x faster** |
-| Tailwind merge: stable | **37.76 ns/op** | `clsx + tailwind-merge`: 166.18 ns/op | **4.40x faster** |
-| Tailwind merge: rotating | **9.86 ns/op** | `clsx + tailwind-merge`: 137.59 ns/op | **13.96x faster** |
+| class composition | **44.32 ns/op** | class-variance-authority 0.7.1: 68.89 ns/op | **1.55x faster** |
+| class composition | **44.32 ns/op** | cva 1.0 beta: 103.79 ns/op | **2.34x faster** |
+| defaults + compounds | **39.39 ns/op** | class-variance-authority 0.7.1: 978.98 ns/op | **24.85x faster** |
+| defaults + compounds | **39.39 ns/op** | cva 1.0 beta: 169.75 ns/op | **4.31x faster** |
+| explicit variants | **28.54 ns/op** | class-variance-authority 0.7.1: 1420.33 ns/op | **49.76x faster** |
+| explicit variants | **28.54 ns/op** | cva 1.0 beta: 267.36 ns/op | **9.37x faster** |
+| rotating variants | **47.34 ns/op** | class-variance-authority 0.7.1: 1234.81 ns/op | **26.08x faster** |
+| rotating variants | **47.34 ns/op** | cva 1.0 beta: 251.33 ns/op | **5.31x faster** |
+| compound-heavy | **27.84 ns/op** | class-variance-authority 0.7.1: 12875.12 ns/op | **462.54x faster** |
+| compound-heavy | **27.84 ns/op** | cva 1.0 beta: 1097.36 ns/op | **39.42x faster** |
+| Tailwind merge: stable | **37.76 ns/op** | clsx + tailwind-merge: 166.18 ns/op | **4.40x faster** |
+| Tailwind merge: rotating | **9.86 ns/op** | clsx + tailwind-merge: 137.59 ns/op | **13.96x faster** |
 
-Variant comparisons use equivalent feature scenarios. `cn` is compared against `clsx + tailwind-merge` rather than a concatenation-only helper, and stable calls remain separate from rotating calls so cache-hot behavior is not presented as universal runtime performance.
+Performance depends on Bun/runtime version, CPU, workload shape, cache state, and class/variant distributions. These values are reference measurements, not duration guarantees.
 
-The repository also maintains dedicated behavior, unit, property, guard, type, coverage, and deterministic performance regression suites. Run the full correctness suite with `bun run test`, include performance guards with `bun run test:all`, or execute the raw comparison benchmark with `bun run bench`.
+Run the same checked-in comparison locally:
 
-> Performance varies by Bun version, CPU, operating system, workload shape, cache state, and authored configuration. These are measured reference results, not duration or speedup guarantees. Run `bun run bench` to reproduce the comparison on your own machine or CI runner.
+```bash
+bun run bench
+```
+
+Performance regression tests are separate from the comparison benchmark:
+
+```bash
+bun run test:performance
+```
 
 ## Contributing
 
-The **CVX** project welcomes contributions from the community.
-
-Whether you want to report a bug, suggest a new feature, improve the
-documentation, strengthen tests, optimize a hot path, or submit code changes, your contributions are greatly appreciated.
-
-You can find detailed information about the contribution process by visiting the link below.
+The **@obvia/cvx** project welcomes focused contributions that preserve the small public API, behavioral parity, type safety, and measured performance characteristics.
 
 - **[Contributing Guide](contributing.md)**
 
 ## Security
 
-The **CVX** project takes security vulnerabilities seriously.
-
-If you believe you have discovered a security vulnerability, please report it
-responsibly by contacting **Selçuk Çukur** at **<hello@selcukcukur.me>**.
-
-Please do not disclose security vulnerabilities publicly until they have been
-reviewed and addressed.
-
-You can find detailed information about the security policy by visiting the link below.
+If you believe you have discovered a security vulnerability, report it privately before public disclosure.
 
 - **[Security Policy](security.md)**
 
 ## License
 
-The **CVX** project is published as open source software under the **[MIT License](license.md)**,
-which is one of the most widely used open source licenses.
-
-The project also includes code and behavior derived from or informed by third-party open source projects. Attribution and license details are available in the included notice files.
+The project is published under the **[MIT License](license.md)**. Portions derived from upstream open-source implementations retain their required attribution in the repository notices.
 
 - **[MIT License](license.md)**
-- **[Notice](NOTICE.md)**
-- **[Third-Party Notices](THIRD_PARTY_NOTICES.md)**

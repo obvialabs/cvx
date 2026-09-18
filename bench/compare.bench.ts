@@ -135,7 +135,7 @@ function report(
       `  cva 1.0 beta                    ${betaNs.toFixed(2)} ns/op  ${(betaNs / obviaNs).toFixed(2)}x`,
   );
   console.log(
-      `  @obvia/cv                       ${obviaNs.toFixed(2)} ns/op  1.00x`,
+      `  @obvia/cvx                      ${obviaNs.toFixed(2)} ns/op  1.00x`,
   );
 }
 function reportMerge(
@@ -152,7 +152,7 @@ function reportMerge(
       `  clsx + tailwind-merge             ${baselineNs.toFixed(2)} ns/op  ${(baselineNs / obviaNs).toFixed(2)}x`,
   );
   console.log(
-      `  @obvia/cv cn                     ${obviaNs.toFixed(2)} ns/op  1.00x`,
+      `  @obvia/cvx cn                     ${obviaNs.toFixed(2)} ns/op  1.00x`,
   );
 }
 
