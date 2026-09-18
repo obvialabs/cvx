@@ -15,8 +15,8 @@ describe("public API guard", () => {
 
     for (const key of [
       "configure",
-      "createCn",
-      "createTwMerge",
+      "createConfiguredCn",
+      "createConfiguredMerge",
       "getSchema",
       "twJoin",
       "twMerge",
