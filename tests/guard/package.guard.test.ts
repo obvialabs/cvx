@@ -21,6 +21,10 @@ describe("package contract guard", () => {
     expect(packageJson.optionalDependencies).toBeUndefined();
   });
 
+  test("publishes only runtime artifacts and project documentation", () => {
+    expect(packageJson.files).toEqual(["dist", "license.md", "readme.md"]);
+  });
+
   test("keeps Bun and tsdown as the project toolchain", () => {
     expect(packageJson.packageManager).toStartWith("bun@");
     expect(packageJson.scripts.build).toBe("tsdown");

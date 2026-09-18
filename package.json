@@ -54,8 +54,6 @@
   "files": [
     "dist",
     "license.md",
-    "NOTICE.md",
-    "THIRD_PARTY_NOTICES.md",
     "readme.md"
   ],
   "devDependencies": {
