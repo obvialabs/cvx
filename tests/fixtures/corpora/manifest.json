@@ -1,0 +1,470 @@
+{
+  "version": 1,
+  "format": "string[][]",
+  "entries": [
+    {
+      "name": "affine",
+      "repository": "https://github.com/toeverything/AFFiNE.git",
+      "calls": 690,
+      "sha256": "c22df4a61821aee147571514dfd56e80ab836b73a1f6968ba0f46431482b31cd",
+      "compressedBytes": 8002,
+      "revision": null
+    },
+    {
+      "name": "better-auth",
+      "repository": "https://github.com/better-auth/better-auth.git",
+      "calls": 1833,
+      "sha256": "192e2fb8c4797d2a50aadfdb4cfba9f58ba5f78a1b515463bfb0b0212bbce5fd",
+      "compressedBytes": 24699,
+      "revision": null
+    },
+    {
+      "name": "bippy",
+      "repository": "https://github.com/aidenybai/bippy.git",
+      "calls": 12,
+      "sha256": "50fb0e219d47634b93a0d1eae138af953cccec794a6c112017a3ea9133995eb0",
+      "compressedBytes": 294,
+      "revision": null
+    },
+    {
+      "name": "cal-diy",
+      "repository": "https://github.com/calcom/cal.diy.git",
+      "calls": 3491,
+      "sha256": "ccc0358cf974928b92fe1ffcf46738d5de53bc74ca37e09b2d4d9d1f76426657",
+      "compressedBytes": 44798,
+      "revision": null
+    },
+    {
+      "name": "calcom",
+      "repository": "https://github.com/calcom/cal.com.git",
+      "calls": 3491,
+      "sha256": "ccc0358cf974928b92fe1ffcf46738d5de53bc74ca37e09b2d4d9d1f76426657",
+      "compressedBytes": 44798,
+      "revision": null
+    },
+    {
+      "name": "cap",
+      "repository": "https://github.com/CapSoftware/Cap.git",
+      "calls": 5705,
+      "sha256": "3acf9c3b876f2d0d141bc6b555108da3a2245de315501f6383284722b7360c4f",
+      "compressedBytes": 66049,
+      "revision": null
+    },
+    {
+      "name": "chartdb",
+      "repository": "https://github.com/chartdb/chartdb.git",
+      "calls": 895,
+      "sha256": "0394a6e493e3de7efbb96d1a53837d01b93d7c6a722f7e1f52ee3745e3d310a6",
+      "compressedBytes": 11664,
+      "revision": null
+    },
+    {
+      "name": "commerce",
+      "repository": "https://github.com/vercel/commerce.git",
+      "calls": 170,
+      "sha256": "5f6112642c821ccacb4714df46ebc1789b54b47a086f3e76012839cf7d05a867",
+      "compressedBytes": 2617,
+      "revision": null
+    },
+    {
+      "name": "create-t3-app",
+      "repository": "https://github.com/t3-oss/create-t3-app.git",
+      "calls": 311,
+      "sha256": "257b8a4f7be015c2d59459af989869c7f5b611c9a728d896d049634e9de32711",
+      "compressedBytes": 4504,
+      "revision": null
+    },
+    {
+      "name": "documenso",
+      "repository": "https://github.com/documenso/documenso.git",
+      "calls": 2254,
+      "sha256": "27ebe93bd369a95e992d2ee097a75f2d9d735011c61064c6c5cd2cc02fe62061",
+      "compressedBytes": 22462,
+      "revision": null
+    },
+    {
+      "name": "drawdb",
+      "repository": "https://github.com/drawdb-io/drawdb.git",
+      "calls": 446,
+      "sha256": "ee3551c4152a62698a81f1607d619e913c7742abd2e6af7a51acf5d310dff283",
+      "compressedBytes": 4545,
+      "revision": null
+    },
+    {
+      "name": "dub",
+      "repository": "https://github.com/dubinc/dub.git",
+      "calls": 6863,
+      "sha256": "4fdcfbfdc74872350d5884889fa66e9018024f050be69ad6c4f63c67ce6281c7",
+      "compressedBytes": 70042,
+      "revision": null
+    },
+    {
+      "name": "dyad",
+      "repository": "https://github.com/dyad-sh/dyad.git",
+      "calls": 2832,
+      "sha256": "4471b27b3d8f3542542130361699d33be07d784f52b6d10b65b1df2ad4bd2322",
+      "compressedBytes": 34428,
+      "revision": null
+    },
+    {
+      "name": "executor",
+      "repository": "https://github.com/RhysSullivan/executor.git",
+      "calls": 1695,
+      "sha256": "e4aa0e146c74458cb64c44920fb7d7fb3b6deaf6e096b68dcd144f7751ac831c",
+      "compressedBytes": 20370,
+      "revision": null
+    },
+    {
+      "name": "expect",
+      "repository": "https://github.com/millionco/expect.git",
+      "calls": 288,
+      "sha256": "0f605753ed08e98297eecfd5417be1791da3e130646c2ae9729b668a8822da9b",
+      "compressedBytes": 6634,
+      "revision": null
+    },
+    {
+      "name": "fastgpt",
+      "repository": "https://github.com/labring/FastGPT.git",
+      "calls": 389,
+      "sha256": "3af957475a470bcea34b73928dfeae78b7710b1cf320bafc96d60a3c71d39203",
+      "compressedBytes": 3966,
+      "revision": null
+    },
+    {
+      "name": "formbricks",
+      "repository": "https://github.com/formbricks/formbricks.git",
+      "calls": 3085,
+      "sha256": "f1e34725e40ea699be8bf2edd207d2c3903a785ab30c5cb9046a0b2aecbb1415",
+      "compressedBytes": 30440,
+      "revision": null
+    },
+    {
+      "name": "huly",
+      "repository": "https://github.com/hcengineering/platform.git",
+      "calls": 3659,
+      "sha256": "a85eb4dadd1b14d0dc8c1da07f95535f0931d06e07553bb02d635ffffc02bcea",
+      "compressedBytes": 20492,
+      "revision": null
+    },
+    {
+      "name": "inbox-zero",
+      "repository": "https://github.com/elie222/inbox-zero.git",
+      "calls": 2663,
+      "sha256": "7fc64450ab14fe6cb1e6610a5c04e370e5d8998b00499bc8038ec0237faa9562",
+      "compressedBytes": 29708,
+      "revision": null
+    },
+    {
+      "name": "infisical",
+      "repository": "https://github.com/Infisical/infisical.git",
+      "calls": 5021,
+      "sha256": "7142d19dfd1298e2178fe76fde0d5bcfdc24cd3bf61783d515719482810c045e",
+      "compressedBytes": 50521,
+      "revision": null
+    },
+    {
+      "name": "insomnia",
+      "repository": "https://github.com/Kong/insomnia.git",
+      "calls": 2191,
+      "sha256": "1c9ae99c0a01e20d92678050981cf21f09b9e53cca53ec649bede19db414be0a",
+      "compressedBytes": 21318,
+      "revision": null
+    },
+    {
+      "name": "karakeep",
+      "repository": "https://github.com/karakeep-app/karakeep.git",
+      "calls": 1607,
+      "sha256": "c3fcdb5fb64dbb0ae8d763199603a837b92eabb478011f835b1bd9f744b59353",
+      "compressedBytes": 15557,
+      "revision": null
+    },
+    {
+      "name": "langfuse",
+      "repository": "https://github.com/langfuse/langfuse.git",
+      "calls": 3955,
+      "sha256": "6f4319da364bfee423fccf7fb5dbc3f64e59c0663dc95b09cdb96bf3ba6176d9",
+      "compressedBytes": 38292,
+      "revision": null
+    },
+    {
+      "name": "linkwarden",
+      "repository": "https://github.com/linkwarden/linkwarden.git",
+      "calls": 1047,
+      "sha256": "44afbd747bc57b3ecb3ade1d0a7d824d6a0d2d3444107141919d7e2b888e44cd",
+      "compressedBytes": 9916,
+      "revision": null
+    },
+    {
+      "name": "mastra",
+      "repository": "https://github.com/mastra-ai/mastra.git",
+      "calls": 4868,
+      "sha256": "901a1cc6746abe0f7834e29e8f11664efee3851c9592861dbb57670340e1c408",
+      "compressedBytes": 54451,
+      "revision": null
+    },
+    {
+      "name": "medusa",
+      "repository": "https://github.com/medusajs/medusa.git",
+      "calls": 2781,
+      "sha256": "3ea1d96aa362bc19412026ef4f9908b4ba8cec89bfb57c7414685d1f344a04f5",
+      "compressedBytes": 30458,
+      "revision": null
+    },
+    {
+      "name": "memos",
+      "repository": "https://github.com/usememos/memos.git",
+      "calls": 1115,
+      "sha256": "f56e8f08cc5a9b6309d79cd0e645505fdfc4f023690cb71ee7437a937f0a829f",
+      "compressedBytes": 13252,
+      "revision": null
+    },
+    {
+      "name": "midday",
+      "repository": "https://github.com/midday-ai/midday.git",
+      "calls": 4058,
+      "sha256": "802d5aa1e2804d09c38f02adae777ddf693cbccd1eb86cb9957a47c7af9f4200",
+      "compressedBytes": 41056,
+      "revision": null
+    },
+    {
+      "name": "nodejs-org",
+      "repository": "https://github.com/nodejs/nodejs.org.git",
+      "calls": 213,
+      "sha256": "7b8024983fc7b047baa7df9cdd2d4d863943e0acac7757b1a3d686a36bc6cb36",
+      "compressedBytes": 1400,
+      "revision": null
+    },
+    {
+      "name": "note-gen",
+      "repository": "https://github.com/codexu/note-gen.git",
+      "calls": 2288,
+      "sha256": "5014c41d6cb40294ae487322074012fc1fbd0bed87baab54dc12f9b39ec42f19",
+      "compressedBytes": 29447,
+      "revision": null
+    },
+    {
+      "name": "novel",
+      "repository": "https://github.com/steven-tey/novel.git",
+      "calls": 113,
+      "sha256": "d9d97a1318704806274ccd1b902a10710bd7cfbdd7325a7a1509334c83dcb20a",
+      "compressedBytes": 2022,
+      "revision": null
+    },
+    {
+      "name": "nuxt-ui",
+      "repository": "https://github.com/nuxt/ui.git",
+      "calls": 649,
+      "sha256": "5958e8b512a2d43b243e5b8a691645bc359f8ba074105cd5f6c78ca9c1c24aa1",
+      "compressedBytes": 5477,
+      "revision": null
+    },
+    {
+      "name": "nx",
+      "repository": "https://github.com/nrwl/nx.git",
+      "calls": 1178,
+      "sha256": "ce3d5747b73b5962c0f986fb5d19fa874c9ab753381e304bb5c104e56d63503c",
+      "compressedBytes": 14378,
+      "revision": null
+    },
+    {
+      "name": "omi",
+      "repository": "https://github.com/BasedHardware/omi.git",
+      "calls": 5072,
+      "sha256": "995686112aabf6f8a3c50f9e3d29f05c457a2eb42103ced148a34ee2fa72c2bb",
+      "compressedBytes": 53846,
+      "revision": null
+    },
+    {
+      "name": "onlook",
+      "repository": "https://github.com/onlook-dev/onlook.git",
+      "calls": 2332,
+      "sha256": "098ee5e7cb5a2926c868a6f4841bfefd227894874f9e2e0a0fd2974c846f1fda",
+      "compressedBytes": 29779,
+      "revision": null
+    },
+    {
+      "name": "open-assistant",
+      "repository": "https://github.com/LAION-AI/Open-Assistant.git",
+      "calls": 165,
+      "sha256": "0cce3fb497f0a046cdd76a298e7dbe1594e9134133c72ffc8d8f5e8ec75feb89",
+      "compressedBytes": 1957,
+      "revision": null
+    },
+    {
+      "name": "open-webui",
+      "repository": "https://github.com/open-webui/open-webui.git",
+      "calls": 3241,
+      "sha256": "560505b44a41480c0c49edfcd155b5b008dcea915741c5771c5d08eecba4a27a",
+      "compressedBytes": 30760,
+      "revision": null
+    },
+    {
+      "name": "openreplay",
+      "repository": "https://github.com/openreplay/openreplay.git",
+      "calls": 2533,
+      "sha256": "45e4d51a4c8bf0ca836db87731fd4423f285d25a4ad9e02c133f650c06f281c6",
+      "compressedBytes": 19372,
+      "revision": null
+    },
+    {
+      "name": "openstatus",
+      "repository": "https://github.com/openstatusHQ/openstatus.git",
+      "calls": 1539,
+      "sha256": "4fa6b68ba214fbce2c0c26e9461eee56f80c7b2e2aa40721a86ed7c3c21c05c4",
+      "compressedBytes": 18121,
+      "revision": null
+    },
+    {
+      "name": "payload",
+      "repository": "https://github.com/payloadcms/payload.git",
+      "calls": 1427,
+      "sha256": "a4eb199efa0cd72d80d6e6dc38f4bdff435a17197d5d0208bd57141bad570e69",
+      "compressedBytes": 11003,
+      "revision": null
+    },
+    {
+      "name": "pierre",
+      "repository": "https://github.com/pierrecomputer/pierre.git",
+      "calls": 788,
+      "sha256": "fdfc35d88d7623777b1133794208d09e40507e2c7a799da1b1a31bd564d6baa7",
+      "compressedBytes": 11064,
+      "revision": null
+    },
+    {
+      "name": "plane",
+      "repository": "https://github.com/makeplane/plane.git",
+      "calls": 4617,
+      "sha256": "4cc77584d65767492c6a132bd941e31b080f27a52ecaab74b155380a72730641",
+      "compressedBytes": 41324,
+      "revision": null
+    },
+    {
+      "name": "posthog",
+      "repository": "https://github.com/PostHog/posthog.git",
+      "calls": 18352,
+      "sha256": "ae642eebd65ed079c8232ab1fddccc22b1804dcee815ec0bc31d9e53f6687e4e",
+      "compressedBytes": 151985,
+      "revision": null
+    },
+    {
+      "name": "postiz-app",
+      "repository": "https://github.com/gitroomhq/postiz-app.git",
+      "calls": 1413,
+      "sha256": "28ea14e4f34625f041a9b5a0eb4bf1faa8f7a5a3510a1b443a4a3b47fe030195",
+      "compressedBytes": 15898,
+      "revision": null
+    },
+    {
+      "name": "react-grab",
+      "repository": "https://github.com/aidenybai/react-grab.git",
+      "calls": 528,
+      "sha256": "2c6531d054b3aa60e2f47c0fc605d31a2bb9fa74e38f99913d8ea32a99bc1b18",
+      "compressedBytes": 7490,
+      "revision": null
+    },
+    {
+      "name": "react-scan",
+      "repository": "https://github.com/aidenybai/react-scan.git",
+      "calls": 402,
+      "sha256": "eac201bbd0e54b52f0b7852de68b42f34cd4a055eebf65f6be1d53f607a232da",
+      "compressedBytes": 5364,
+      "revision": null
+    },
+    {
+      "name": "reactive-resume",
+      "repository": "https://github.com/amruthpillai/reactive-resume.git",
+      "calls": 1211,
+      "sha256": "42148dcb50f94acf771b55083a617a46642597536723785c54315f5dea05c03c",
+      "compressedBytes": 18626,
+      "revision": null
+    },
+    {
+      "name": "responsively-app",
+      "repository": "https://github.com/responsively-org/responsively-app.git",
+      "calls": 344,
+      "sha256": "a7acbf92289682f8ad5db4c0baa794afef01558a70d05b91b7f479d7160d5442",
+      "compressedBytes": 3699,
+      "revision": null
+    },
+    {
+      "name": "shadcn-ui",
+      "repository": "https://github.com/shadcn-ui/ui.git",
+      "calls": 3265,
+      "sha256": "1df5465efcc2cda4b72a35691dc824f1d5694ee58d7484e4febe246c1bb0de91",
+      "compressedBytes": 44095,
+      "revision": null
+    },
+    {
+      "name": "social-app",
+      "repository": "https://github.com/bluesky-social/social-app.git",
+      "calls": 126,
+      "sha256": "0beb2535cc8f66ca40efb2aa26a16c6f4e35e63b9e8c332314c9da3560e0fa37",
+      "compressedBytes": 1665,
+      "revision": null
+    },
+    {
+      "name": "starlight",
+      "repository": "https://github.com/withastro/starlight.git",
+      "calls": 129,
+      "sha256": "246a09902cfa6ca48c7a30cd22edd9bbc896bc4f5e1d69abebb95d8c13729c6e",
+      "compressedBytes": 851,
+      "revision": null
+    },
+    {
+      "name": "supabase",
+      "repository": "https://github.com/supabase/supabase.git",
+      "calls": 12225,
+      "sha256": "712b3ab066d29d4ee06c0d693e0939935f629d81ad6ccab67e97f430946e2a0b",
+      "compressedBytes": 132381,
+      "revision": null
+    },
+    {
+      "name": "taxonomy",
+      "repository": "https://github.com/shadcn-ui/taxonomy.git",
+      "calls": 392,
+      "sha256": "0fffa9b213650ba527695fb14d22f5f1971eddc5f2a9a8e4d7f6d48a317f18fe",
+      "compressedBytes": 5523,
+      "revision": null
+    },
+    {
+      "name": "teable",
+      "repository": "https://github.com/teableio/teable.git",
+      "calls": 3605,
+      "sha256": "afe6c71e7cf86027cc21662ef58bd46575ef27e7fde665208c726d3f14373255",
+      "compressedBytes": 34522,
+      "revision": null
+    },
+    {
+      "name": "tinacms",
+      "repository": "https://github.com/tinacms/tinacms.git",
+      "calls": 1426,
+      "sha256": "b48292975681d7fb414d1c88926d2a6283bee60515af92736a9ab7fdb58f65a7",
+      "compressedBytes": 22193,
+      "revision": null
+    },
+    {
+      "name": "trigger-dev",
+      "repository": "https://github.com/triggerdotdev/trigger.dev.git",
+      "calls": 2888,
+      "sha256": "e400198b826f6297146f360fa771363804e78bc3bb267d1c6f7508c9dd56e8bb",
+      "compressedBytes": 25663,
+      "revision": null
+    },
+    {
+      "name": "typebot-io",
+      "repository": "https://github.com/baptisteArno/typebot.io.git",
+      "calls": 1330,
+      "sha256": "7e6590e7119f503dbceaa18d53386130afe6cbaabcfe2f82cc3eedf07f7af27b",
+      "compressedBytes": 18061,
+      "revision": null
+    },
+    {
+      "name": "unkey",
+      "repository": "https://github.com/unkeyed/unkey.git",
+      "calls": 3059,
+      "sha256": "766ee39841b2308418b41fd812124c66efd657efe0e718e91cad3460e5c2155e",
+      "compressedBytes": 33604,
+      "revision": null
+    }
+  ]
+}

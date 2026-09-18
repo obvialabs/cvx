@@ -4,18 +4,18 @@
  * @internal
  */
 
-import { cx } from "../../cx/compose.js";
-import type { ClassValue } from "../../cx/types.js";
-import type { CV, CVComponentShape, CVConfig } from "../types.js";
-import type { VariantRuntime } from "./model.js";
-import { createProgram, registerProgram } from "./program.js";
+import { cx } from "../../cx/compose"
+import type { ClassValue } from "../../cx/types"
+import type { CV, CVComponentShape, CVConfig } from "../types"
+import type { VariantRuntime } from "./model"
+import { createProgram, registerProgram } from "./program"
 
-const EMPTY_OBJECT: Readonly<Record<string, never>> = Object.freeze({});
-const DEFAULT_COMPILE_LIMIT = 512;
+const EMPTY_OBJECT: Readonly<Record<string, never>> = Object.freeze({})
+const DEFAULT_COMPILE_LIMIT = 512
 
 /** Private runtime options used by tests and internal tuning only. */
 export interface CreateCvRuntimeOptions {
-  compileLimit?: number;
+  compileLimit?: number
 }
 
 /**
@@ -28,7 +28,7 @@ export function createCvRuntime(options: CreateCvRuntimeOptions = {}): CV {
       options.compileLimit === undefined
         ? DEFAULT_COMPILE_LIMIT
         : Math.max(0, options.compileLimit | 0),
-  };
+  }
 
   return (<
     Config,
@@ -38,23 +38,23 @@ export function createCvRuntime(options: CreateCvRuntimeOptions = {}): CV {
   >(
     authored: CVConfig<Config, Variants, Single, List>,
   ) => {
-    const definition = (authored || EMPTY_OBJECT) as Record<string, any>;
-    const program = createProgram(runtime, definition);
+    const definition = (authored || EMPTY_OBJECT) as Record<string, any>
+    const program = createProgram(runtime, definition)
 
     const component = (
       program.staticOutput !== undefined
         ? (input?: Record<string, unknown> | null) => {
-            if (!input || typeof input !== "object") return program.staticOutput!;
+            if (!input || typeof input !== "object") return program.staticOutput!
 
-            const classValue = input.class as ClassValue;
-            const classNameValue = input.className as ClassValue;
+            const classValue = input.class as ClassValue
+            const classNameValue = input.className as ClassValue
             return classValue === undefined && classNameValue === undefined
               ? program.staticOutput!
-              : cx(program.staticOutput!, classValue, classNameValue);
+              : cx(program.staticOutput!, classValue, classNameValue)
           }
         : (input?: Record<string, unknown> | null) =>
             program.render(input && typeof input === "object" ? input : EMPTY_OBJECT)
-    ) as CVComponentShape;
+    ) as CVComponentShape
 
     Object.defineProperty(component, "config", {
       enumerable: true,
@@ -65,9 +65,9 @@ export function createCvRuntime(options: CreateCvRuntimeOptions = {}): CV {
         variants: Object.freeze({ ...program.mergedVariants }),
         defaults: program.defaults,
       }),
-    });
+    })
 
-    registerProgram(component, program);
-    return component;
-  }) as CV;
+    registerProgram(component, program)
+    return component
+  }) as CV
 }

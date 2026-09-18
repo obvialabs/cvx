@@ -87,7 +87,7 @@ jobs:
       - name: Run property tests
         run: bun run test:property
 
-      # Enforce package, source, workflow, and build-configuration invariants.
+      # Enforce the release-critical public package contract.
       - name: Run guard tests
         run: bun run test:guard
 

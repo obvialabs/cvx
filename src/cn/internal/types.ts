@@ -1,5 +1,6 @@
-import type { ClassValue } from "../../cx/types.js";
-export type { ClassValue } from "../../cx/types.js";
+import type { ClassValue } from "../../cx/types"
+
+export type { ClassValue } from "../../cx/types"
 
 /**
  * Compiled lookup tables consumed by the conflict engine. The representation

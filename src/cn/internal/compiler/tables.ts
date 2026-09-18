@@ -5,9 +5,9 @@
  * @internal
  */
 
-import type { Tables, ValidatorImpls } from "../types.js"
-import type { CnConfig } from "./config.js"
-import { compileModel } from "./model.js"
+import type { Tables, ValidatorImpls } from "../types"
+import type { CnConfig } from "./config"
+import { compileModel } from "./model"
 
 const prefixSums = (counts: ArrayLike<number>): Int32Array => {
   const out = new Int32Array(counts.length + 1)

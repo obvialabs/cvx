@@ -7,8 +7,8 @@
  * @internal
  */
 
-import type { CnConfig } from "./config.js"
-import { compileModel } from "./model.js"
+import type { CnConfig } from "./config"
+import { compileModel } from "./model"
 
 const PACK = 0x30
 const packStr = (arr: ArrayLike<number>): string => {

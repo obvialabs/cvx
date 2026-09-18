@@ -8,14 +8,14 @@
  * @internal
  */
 
-import type { Tables, ValidatorImpls } from "../types.js"
-import * as refValidators from "../validators.js"
+import type { Tables, ValidatorImpls } from "../types"
+import * as refValidators from "../validators"
 
 import {
   cloneConfig,
   type ClassGroupDefinition,
   type CnConfig,
-} from "./config.js"
+} from "./config"
 
 const isMarker = (def: object, key: string): boolean => {
   const keys = Object.keys(def)

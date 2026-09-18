@@ -9,8 +9,8 @@
  * @internal
  */
 
-import type { ClassValue } from "../../../cx/types.js"
-import type { CnFunction, FreshMergeEngine, MergeInput } from "../types.js"
+import type { ClassValue } from "../../../cx/types"
+import type { CnFunction, FreshMergeEngine, MergeInput } from "../types"
 
 const resolveValue = (v: ClassValue, fullGrammar: boolean): string => {
   if (!v) return ""

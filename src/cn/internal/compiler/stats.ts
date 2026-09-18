@@ -4,8 +4,8 @@
  * @internal
  */
 
-import type { CnConfig } from "./config.js"
-import { compileModel } from "./model.js"
+import type { CnConfig } from "./config"
+import { compileModel } from "./model"
 
 export interface CompileStats {
   groups: number

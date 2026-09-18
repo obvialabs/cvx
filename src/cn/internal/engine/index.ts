@@ -8,10 +8,10 @@
  * @internal
  */
 
-import { joinMergeInputs } from "./compose.js"
-import { hashSampledSpan, hashSpan } from "./hash.js"
+import { joinMergeInputs } from "./compose"
+import { hashSampledSpan, hashSpan } from "./hash"
 
-import type { Engine, EngineOptions, Tables, ValidatorImpls } from "../types.js"
+import type { Engine, EngineOptions, Tables, ValidatorImpls } from "../types"
 
 const IS_JSC = "line" in new Error()
 
@@ -58,7 +58,7 @@ export const createEngine = (
   const adjRow = new Int32Array(GROUP_COUNT).fill(-1)
   for (let i = 0; i < adjGid.length; i++) adjRow[adjGid[i]] = i
 
-  // claims per kept token: itself + its adjacency row + postfix pairs;
+  // claims per kept token: itself + its adjacency row + postfix pairs
   // sizes the claim table so it can never fill under any config
   let maxAdj = 0
   for (let r = 0; r + 1 < adjStart.length; r++) {
@@ -223,7 +223,7 @@ export const createEngine = (
     return true
   }
 
-  // simple value shapes as regexes on lazy slices (memo-miss path only;
+  // simple value shapes as regexes on lazy slices (memo-miss path only
   // the hot arbitrary-value analysis stays span-based in analyzeArb)
   const fractionRegex = /^\d+(?:\.\d+)?\/\d+(?:\.\d+)?$/
   const tshirtRegex = /^(\d+(\.\d+)?)?(xs|sm|md|lg|xl)$/
@@ -320,7 +320,7 @@ export const createEngine = (
   )
 
   // ---- span interning (contexts + dynamic groups), process lifetime ------
-  // hash buckets hold materialized strings (allocated once per unique span);
+  // hash buckets hold materialized strings (allocated once per unique span)
   // resets happen only between merges so ids stay consistent within a pass.
   interface InternEntry {
     k: string

@@ -1,4 +1,4 @@
-import { createCvRuntime } from "./internal/runtime.js";
+import { createCvRuntime } from "./internal/runtime"
 
 /**
  * Creates a typed class-variant component.
@@ -7,4 +7,4 @@ import { createCvRuntime } from "./internal/runtime.js";
  * variant spaces are compiled into lazy dense lookup tables while larger or
  * dynamic shapes automatically use the general execution path.
  */
-export const cv = /* @__PURE__ */ createCvRuntime();
+export const cv = /* @__PURE__ */ createCvRuntime()

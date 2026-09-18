@@ -4,13 +4,13 @@
  * The public function is intentionally tiny: all parsing, conflict tables,
  * caching, and merge state stay private to the `cn` domain.
  */
-import tables from "./internal/generated/tables.js";
-import { createEngine } from "./internal/engine/index.js";
-import { wrapComposer } from "./internal/engine/compose.js";
+import tables from "./internal/generated/tables"
+import { createEngine } from "./internal/engine/index"
+import { wrapComposer } from "./internal/engine/compose"
 
-import type { ClassComposer } from "../cx/types.js";
+import type { ClassComposer } from "../cx/types"
 
-const engine = /* @__PURE__ */ createEngine(tables);
+const engine = /* @__PURE__ */ createEngine(tables)
 
 /**
  * Composes class values and resolves Tailwind CSS utility conflicts.
@@ -28,4 +28,4 @@ const engine = /* @__PURE__ */ createEngine(tables);
 export const cn: ClassComposer = /* @__PURE__ */ wrapComposer(
   engine.mergeString,
   engine,
-) as ClassComposer;
+) as ClassComposer

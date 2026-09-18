@@ -1,4 +1,4 @@
-import type { ClassValue } from "../cx/types.js"
+import type { ClassValue } from "../cx/types"
 
 /** Map of variant names to their allowed values and emitted classes. */
 export type VariantShape<T extends ClassValue = ClassValue> = Record<

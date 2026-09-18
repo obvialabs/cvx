@@ -8,18 +8,18 @@
  * @internal
  */
 
-import { compileToTables } from "./compiler/index.js"
+import { compileToTables } from "./compiler/index"
 import {
   mergeConfigs,
   type CnConfig,
   type ClassGroupDefinition,
   type CnConfigExtension,
   type CnConfigurationInput,
-} from "./compiler/config.js"
-import { getDefaultCnConfig } from "./generated/default-config.js"
-import { createEngine } from "./engine/index.js"
-import { wrapComposer } from "./engine/compose.js"
-import type { CnFunction, Engine } from "./types.js"
+} from "./compiler/config"
+import { getDefaultCnConfig } from "./generated/default-config"
+import { createEngine } from "./engine/index"
+import { wrapComposer } from "./engine/compose"
+import type { CnFunction, Engine } from "./types"
 
 export { getDefaultCnConfig as defaultConfig }
 export { mergeConfigs }
@@ -32,7 +32,7 @@ export type {
 export type {
   DefaultClassGroupIds,
   DefaultThemeGroupIds,
-} from "./generated/default-config.js"
+} from "./generated/default-config"
 
 /** Reference a theme scale from a class-group definition. */
 export const fromTheme = (key: string): { $t: string } => ({ $t: key })

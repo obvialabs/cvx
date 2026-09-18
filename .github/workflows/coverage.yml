@@ -9,9 +9,11 @@ on:
       - main
     paths:
       - "src/**"
-      - "tests/unit/**"
-      - "tests/behavior/**"
-      - "tests/property/**"
+      - "tests/unit.test.ts"
+      - "tests/behavior.test.ts"
+      - "tests/property.test.ts"
+      - "tests/utility/**"
+      - "tests/fixtures/**"
       - "package.json"
       - "bun.lock"
       - "bunfig.toml"
@@ -21,9 +23,11 @@ on:
   pull_request:
     paths:
       - "src/**"
-      - "tests/unit/**"
-      - "tests/behavior/**"
-      - "tests/property/**"
+      - "tests/unit.test.ts"
+      - "tests/behavior.test.ts"
+      - "tests/property.test.ts"
+      - "tests/utility/**"
+      - "tests/fixtures/**"
       - "package.json"
       - "bun.lock"
       - "bunfig.toml"

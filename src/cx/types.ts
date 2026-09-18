@@ -13,15 +13,15 @@ export type ClassValue =
   | null
   | undefined
   | ClassDictionary
-  | readonly ClassValue[];
+  | readonly ClassValue[]
 
 /** A conditional class-name dictionary. */
-export type ClassDictionary = Readonly<Record<string, unknown>>;
+export type ClassDictionary = Readonly<Record<string, unknown>>
 
 /** A nested list of class values. */
-export type ClassArray = readonly ClassValue[];
+export type ClassArray = readonly ClassValue[]
 
 /** Callable shape shared by `cx` and `cn`. */
 export interface ClassComposer {
-  (...inputs: ClassValue[]): string;
+  (...inputs: ClassValue[]): string
 }
