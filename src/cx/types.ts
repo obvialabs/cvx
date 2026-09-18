@@ -1,8 +1,8 @@
 /**
  * Values accepted by CVX class composition functions.
  *
- * The shape intentionally matches the practical `clsx` grammar while also
- * accepting bigint values. Falsy values are ignored, arrays are flattened,
+ * The grammar covers strings, numeric values, nested arrays, and conditional
+ * dictionaries while also accepting bigint values. Falsy values are ignored, arrays are flattened,
  * and object keys are emitted when their values are truthy.
  */
 export type ClassValue =

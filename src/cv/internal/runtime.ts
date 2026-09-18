@@ -1,8 +1,14 @@
-import { cx } from "../../cx/compose";
-import type { ClassValue } from "../../cx/types";
-import type { CV, CVComponentShape, CVConfig } from "../types";
-import type { VariantRuntime } from "./model";
-import { createProgram, registerProgram } from "./program";
+/**
+ * Factory boundary for executable `cv` components.
+ *
+ * @internal
+ */
+
+import { cx } from "../../cx/compose.js";
+import type { ClassValue } from "../../cx/types.js";
+import type { CV, CVComponentShape, CVConfig } from "../types.js";
+import type { VariantRuntime } from "./model.js";
+import { createProgram, registerProgram } from "./program.js";
 
 const EMPTY_OBJECT: Readonly<Record<string, never>> = Object.freeze({});
 const DEFAULT_COMPILE_LIMIT = 512;

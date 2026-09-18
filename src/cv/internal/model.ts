@@ -1,5 +1,11 @@
-import type { ClassValue } from "../../cx/types";
-import type { CVComponentShape, VariantShape } from "../types";
+/**
+ * Executable data model shared by the CV compiler and render paths.
+ *
+ * @internal
+ */
+
+import type { ClassValue } from "../../cx/types.js";
+import type { CVComponentShape, VariantShape } from "../types.js";
 
 /** Runtime tuning that remains private to the CV engine. */
 export interface VariantRuntime {

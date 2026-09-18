@@ -1,6 +1,12 @@
-import type { ClassValue } from "../../cx/types";
-import type { ClassProp } from "../types";
-import type { CompoundSelector, PreparedCompound } from "./model";
+/**
+ * Compound-variant preparation and matching for the `cv` domain.
+ *
+ * @internal
+ */
+
+import type { ClassValue } from "../../cx/types.js";
+import type { ClassProp } from "../types.js";
+import type { CompoundSelector, PreparedCompound } from "./model.js";
 
 const EMPTY_COMPOUNDS: readonly PreparedCompound[] = Object.freeze([]);
 

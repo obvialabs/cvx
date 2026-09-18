@@ -1,5 +1,11 @@
-import type { DenseDimension, DenseTable, VariantProgram } from "./model";
-import { toVariantPropValue } from "./variants";
+/**
+ * Dense lookup compilation for bounded variant spaces.
+ *
+ * @internal
+ */
+
+import type { DenseDimension, DenseTable, VariantProgram } from "./model.js";
+import { toVariantPropValue } from "./variants.js";
 
 /**
  * Creates a bounded dense lookup layout for fully-known variant dimensions.

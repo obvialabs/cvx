@@ -1,14 +1,23 @@
-import { appendClassValue, cx } from "../../cx/compose";
-import type { ClassValue } from "../../cx/types";
-import type { CVComponentShape, VariantShape } from "../types";
-import { matchesCompoundSelector, prepareCompounds } from "./compounds";
-import { buildDenseTable, resolveDenseIndex } from "./dense";
-import type { VariantProgram, VariantRuntime } from "./model";
+/**
+ * Program preparation and rendering for compiled variant components.
+ *
+ * This module coordinates already-specialized helpers; parsing and type-level
+ * authoring concerns live elsewhere in the `cv` domain.
+ *
+ * @internal
+ */
+
+import { appendClassValue, cx } from "../../cx/compose.js";
+import type { ClassValue } from "../../cx/types.js";
+import type { CVComponentShape, VariantShape } from "../types.js";
+import { matchesCompoundSelector, prepareCompounds } from "./compounds.js";
+import { buildDenseTable, resolveDenseIndex } from "./dense.js";
+import type { VariantProgram, VariantRuntime } from "./model.js";
 import {
   copyVariantMap,
   mergeVariantMetadata,
   resolveVariantClass,
-} from "./variants";
+} from "./variants.js";
 
 const EMPTY_COMPONENTS: readonly CVComponentShape[] = Object.freeze([]);
 const programs = new WeakMap<Function, VariantProgram>();

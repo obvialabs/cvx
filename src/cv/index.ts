@@ -1,4 +1,4 @@
-import { createCvRuntime } from "./internal/runtime";
+import { createCvRuntime } from "./internal/runtime.js";
 
 /**
  * Creates a typed class-variant component.

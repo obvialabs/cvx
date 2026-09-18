@@ -1,9 +1,10 @@
 /**
- * @obvia/cvx public API.
+ * Public package boundary for `@obvia/cvx`.
  *
- * Implementation details intentionally stay behind this single package entry.
+ * Everything outside these four exports is an implementation detail and may
+ * evolve without becoming part of the package contract.
  */
-export { cn } from "./cn";
-export { cv } from "./cv";
-export { cx } from "./cx";
-export type { VariantProps } from "./cv/types";
+export { cn } from "./cn/index.js"
+export { cv } from "./cv/index.js"
+export { cx } from "./cx/index.js"
+export type { VariantProps } from "./cv/types.js"

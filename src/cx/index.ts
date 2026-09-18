@@ -1,1 +1,1 @@
-export { cx } from "./compose";
+export { cx } from "./compose.js";

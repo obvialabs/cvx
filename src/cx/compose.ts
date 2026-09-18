@@ -1,4 +1,14 @@
-import type { ClassComposer, ClassValue } from "./types";
+/**
+ * Runtime implementation of the `cx` domain.
+ *
+ * Composition is deliberately allocation-light and framework-agnostic. The
+ * same primitive is reused by the variant renderer so class-value semantics
+ * have a single owner.
+ *
+ * @internal
+ */
+
+import type { ClassComposer, ClassValue } from "./types.js";
 
 const hasOwn = Object.prototype.hasOwnProperty;
 

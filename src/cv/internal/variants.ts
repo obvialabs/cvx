@@ -1,5 +1,11 @@
-import type { ClassValue } from "../../cx/types";
-import type { CVComponentShape, VariantShape } from "../types";
+/**
+ * Variant normalization and metadata composition for the `cv` domain.
+ *
+ * @internal
+ */
+
+import type { ClassValue } from "../../cx/types.js";
+import type { CVComponentShape, VariantShape } from "../types.js";
 
 const EMPTY_OBJECT: Readonly<Record<string, never>> = Object.freeze({});
 
@@ -67,7 +73,7 @@ export function mergeVariantMetadata(
   return { variants, defaults };
 }
 
-/** Resolves one variant class while preserving CVA-compatible falsy semantics. */
+/** Resolves one variant class while preserving the runtime falsy-selection semantics. */
 export function resolveVariantClass(
   map: Record<string, ClassValue>,
   raw: unknown,
