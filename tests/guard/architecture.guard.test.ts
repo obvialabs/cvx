@@ -39,7 +39,11 @@ describe("source architecture guard", () => {
     ])
     expect(await names("src/cn/internal/compiler")).toEqual([
       "config.ts",
+      "emitter.ts",
       "index.ts",
+      "model.ts",
+      "stats.ts",
+      "tables.ts",
     ])
     expect(await names("src/cn/internal/engine")).toEqual([
       "compose.ts",
