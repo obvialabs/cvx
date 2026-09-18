@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { extendTailwindMerge as baselineExtend } from "tailwind-merge";
 
-import { createCn } from "../../src/config";
+import { createCn } from "../../src/cn/internal/configuration";
 
 describe("custom configuration behavior parity", () => {
   test("prefix handling matches tailwind-merge", () => {

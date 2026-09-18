@@ -3,7 +3,8 @@ import { cva as betaCva, cx as betaCx } from "cva";
 import { clsx } from "clsx";
 import { twMerge as baselineTwMerge } from "tailwind-merge";
 
-import { cn, configure, cv, cx } from "../../src/index";
+import { cn, cv, cx } from "../../src/index";
+import { createCvRuntime } from "../../src/cv/internal/runtime";
 import { measureNanoseconds } from "../helpers/measure";
 
 let sink = "";
@@ -285,8 +286,8 @@ describe("performance guards", () => {
         { intent: ["primary", "secondary"], size: "md", class: "common" },
       ],
     } as const;
-    const compiled = configure({ compileLimit: 512 }).cv(config);
-    const uncached = configure({ compileLimit: 0 }).cv(config);
+    const compiled = createCvRuntime({ compileLimit: 512 })(config);
+    const uncached = createCvRuntime({ compileLimit: 0 })(config);
     const props = { intent: "danger", size: "lg", disabled: false } as const;
 
     const baseline = measureNanoseconds(() => {
@@ -301,7 +302,7 @@ describe("performance guards", () => {
 
   test("uncached general cv path remains competitive with cva beta", () => {
     const baselineComponent = betaCva(standardConfig);
-    const currentComponent = configure({ compileLimit: 0 }).cv(standardConfig);
+    const currentComponent = createCvRuntime({ compileLimit: 0 })(standardConfig);
     const props = { intent: "secondary", size: "lg", disabled: false } as const;
 
     const baseline = measureNanoseconds(() => {

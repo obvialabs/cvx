@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { cn, twJoin, twMerge } from "../../src/cn";
+import { cn } from "../../src/index";
 
 describe("cn", () => {
   test("resolves same-group utilities with last-one-wins semantics", () => {
@@ -37,13 +37,5 @@ describe("cn", () => {
     ).toBe("2 3 p-4 text-lg");
   });
 
-  test("twJoin joins but deliberately does not resolve conflicts", () => {
-    expect(twJoin("p-2", ["p-4", ["text-sm"]])).toBe("p-2 p-4 text-sm");
-  });
 
-  test("twMerge resolves conflicts for already-tailwind-shaped inputs", () => {
-    expect(twMerge("p-2", ["p-4", "text-sm"], "text-lg")).toBe(
-      "p-4 text-lg",
-    );
-  });
 });

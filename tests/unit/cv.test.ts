@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { cn, configure, cv, cx } from "../../src/index";
+import { cv } from "../../src/index";
+import { createCvRuntime } from "../../src/cv/internal/runtime";
 
 const createButton = () =>
   cv({
@@ -184,8 +185,8 @@ describe("cv", () => {
   });
 
   test("compiled and uncompiled engines produce identical output", () => {
-    const fast = configure({ compileLimit: 512 }).cv;
-    const slow = configure({ compileLimit: 0 }).cv;
+    const fast = createCvRuntime({ compileLimit: 512 });
+    const slow = createCvRuntime({ compileLimit: 0 });
     const config = {
       base: "base",
       variants: {
@@ -206,40 +207,4 @@ describe("cv", () => {
     }
   });
 
-  test("custom cx preserves complete cv semantics", () => {
-    const seen: unknown[][] = [];
-    const customCx = (...values: string[]) => {
-      seen.push(values);
-      return values.filter(Boolean).join("|");
-    };
-    const configured = configure({ cx: customCx, compileLimit: 0 });
-    const component = configured.cv({
-      base: "base",
-      variants: { tone: { soft: "soft", hard: "hard" } },
-      defaultVariants: { tone: "soft" },
-      compoundVariants: [{ tone: "soft", class: "compound" }],
-    });
-
-    expect(component({ className: "override" })).toBe(
-      "base|soft|compound|override",
-    );
-    expect(seen.length).toBeGreaterThan(0);
-  });
-
-  test("custom cx and cn remain independent", () => {
-    const customCx = (...values: string[]) => values.join("|");
-    const customCn = (...values: string[]) => `merge:${values.join("+")}`;
-    const configured = configure({ cx: customCx, cn: customCn });
-
-    expect(configured.cx("a", "b")).toBe("a|b");
-    expect(configured.cn("a", "b")).toBe("merge:a+b");
-    expect(configured.cv({ base: "a" })({ className: "b" })).toBe("a|b");
-  });
-
-  test("default configure surface retains the built-in identities", () => {
-    const configured = configure();
-
-    expect(configured.cx).toBe(cx);
-    expect(configured.cn).toBe(cn);
-  });
 });

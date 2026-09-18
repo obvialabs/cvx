@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { defaultConfig } from "../../src/config";
+import { defaultConfig } from "../../src/cn/internal/configuration";
 import {
   compileStats,
   compileToSource,

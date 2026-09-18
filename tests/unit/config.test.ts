@@ -8,7 +8,7 @@ import {
   fromTheme,
   mergeConfigs,
   validators,
-} from "../../src/config";
+} from "../../src/cn/internal/configuration";
 
 describe("custom cn configuration", () => {
   test("createCn extends class groups", () => {

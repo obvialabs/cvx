@@ -6,7 +6,7 @@ import {
 } from "tailwind-merge";
 
 import { cn } from "../../src/index";
-import { createCn, createTwMerge } from "../../src/config";
+import { createCn, createTwMerge } from "../../src/cn/internal/configuration";
 
 const utilities = [
   "p-0",

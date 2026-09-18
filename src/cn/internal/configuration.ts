@@ -12,7 +12,7 @@ import {
   type ConfigExtension,
   type CreateCnInput,
 } from "./compiler.js"
-import { getDefaultCnConfig } from "./default-config.generated.js"
+import { getDefaultCnConfig } from "./generated/default-config.js"
 import { createEngine, wrapClsx } from "./engine.js"
 import type { CnFunction, Engine } from "./types.js"
 
@@ -22,7 +22,7 @@ export type { CnConfig, ClassGroupDef, ConfigExtension, CreateCnInput }
 export type {
   DefaultClassGroupIds,
   DefaultThemeGroupIds,
-} from "./default-config.generated.js"
+} from "./generated/default-config.js"
 
 /** Reference a theme scale from a class-group definition. */
 export const fromTheme = (key: string): { $t: string } => ({ $t: key })

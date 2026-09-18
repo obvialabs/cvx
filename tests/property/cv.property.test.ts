@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { configure } from "../../src/index";
+import { createCvRuntime } from "../../src/cv/internal/runtime";
 import { createRandom, pick } from "../helpers/random";
 
 const config = {
@@ -38,8 +38,8 @@ const levels = [undefined, 0, 1, 2, 99, null] as const;
 
 describe("cv properties", () => {
   test("dense compilation is observationally equivalent to the uncached path", () => {
-    const compiled = configure({ compileLimit: 1_024 }).cv(config);
-    const uncached = configure({ compileLimit: 0 }).cv(config);
+    const compiled = createCvRuntime({ compileLimit: 1_024 })(config);
+    const uncached = createCvRuntime({ compileLimit: 0 })(config);
     const random = createRandom(0x13572468);
 
     for (let caseIndex = 0; caseIndex < 20_000; caseIndex++) {
@@ -56,7 +56,7 @@ describe("cv properties", () => {
   });
 
   test("repeated cache hits never change output", () => {
-    const component = configure({ compileLimit: 1_024 }).cv(config);
+    const component = createCvRuntime({ compileLimit: 1_024 })(config);
     const props = { intent: "danger", size: "lg", disabled: false, level: 2 } as const;
     const expected = component(props);
 
@@ -66,7 +66,7 @@ describe("cv properties", () => {
   });
 
   test("class overrides affect only the suffix, not variant resolution", () => {
-    const component = configure({ compileLimit: 1_024 }).cv(config);
+    const component = createCvRuntime({ compileLimit: 1_024 })(config);
     const random = createRandom(0x24681357);
 
     for (let caseIndex = 0; caseIndex < 5_000; caseIndex++) {
@@ -87,19 +87,19 @@ describe("cv properties", () => {
 
   test("nested composition stays equivalent between compiled and uncached engines", () => {
     const make = (compileLimit: number) => {
-      const engine = configure({ compileLimit });
-      const tone = engine.cv({
+      const engine = createCvRuntime({ compileLimit });
+      const tone = engine({
         base: "tone",
         variants: { tone: { calm: "calm", loud: "loud" } },
         defaultVariants: { tone: "calm" },
       });
-      const size = engine.cv({
+      const size = engine({
         base: "size",
         variants: { size: { sm: "sm", lg: "lg" } },
         defaultVariants: { size: "sm" },
       });
-      const middle = engine.cv({ composes: [tone, size], base: "middle" });
-      return engine.cv({
+      const middle = engine({ composes: [tone, size], base: "middle" });
+      return engine({
         composes: middle,
         base: "root",
         defaultVariants: { tone: "loud", size: "lg" },
@@ -120,7 +120,7 @@ describe("cv properties", () => {
   test("many independently created components do not share mutable result state", () => {
     const random = createRandom(0x90909090);
     const components = Array.from({ length: 64 }, (_, index) =>
-      configure({ compileLimit: index % 2 === 0 ? 512 : 0 }).cv({
+      createCvRuntime({ compileLimit: index % 2 === 0 ? 512 : 0 })({
         base: `component-${index}`,
         variants: { tone: { a: `a-${index}`, b: `b-${index}` } },
         defaultVariants: { tone: index % 2 === 0 ? "a" : "b" },

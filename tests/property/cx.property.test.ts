@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { clsx } from "clsx";
 
-import { cx, type ClassValue } from "../../src/index";
+import { cx } from "../../src/index";
+import type { ClassValue } from "../../src/cx/types";
 import { createRandom, pick, type Random } from "../helpers/random";
 
 const words = ["alpha", "beta", "gamma", "delta", "px-2", "text-sm"] as const;
