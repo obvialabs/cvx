@@ -437,3 +437,251 @@ type ButtonVariants = VariantProps<typeof button>
 
 `VariantProps` removes `class`, `className`, and `_`-prefixed internal variants from the extracted public type.
 
+### Configuring the runtime
+
+`configure()` creates an isolated `{ cv, cx, cn }` set without mutating the default exports.
+
+```ts
+import { cn, configure } from "@obvia/cv"
+
+const ui = configure({
+    cx: cn,
+    compileLimit: 1024,
+})
+
+ui.cv({
+    base: "p-2 p-4",
+})()
+// "p-4"
+```
+
+The available options are:
+
+- **`cx`** — class composer used internally by the configured `cv` and returned as the configured `cx`.
+- **`cn`** — conflict-aware merger returned as the configured `cn`.
+- **`compileLimit`** — maximum dense variant combination count that CVX may lazily compile for the configured engine. The default is `512`; set it to `0` to disable dense-table compilation.
+
+`cx` and `cn` are independent. Replacing one does not implicitly replace the other.
+
+### Dense variant compilation
+
+The default engine can lazily compile bounded variant spaces into a dense lookup table. This is an implementation optimization and does not change component semantics.
+
+```ts
+const fast = configure({ compileLimit: 1024 }).cv
+const general = configure({ compileLimit: 0 }).cv
+```
+
+`compileLimit` caps the number of possible combinations eligible for dense compilation. Configurations that exceed the limit, require unsupported lookup shapes, or use foreign composition automatically remain on the general evaluation path.
+
+This option is primarily useful for benchmarking, diagnostics, or highly specialized runtimes; application code normally does not need to change it.
+
+### Custom Tailwind merge configuration
+
+Advanced Tailwind configuration lives under `@obvia/cv/config` so the default root bundle does not need to pull the configuration compiler into the normal import graph.
+
+```ts
+import { createCn } from "@obvia/cv/config"
+
+const cn = createCn({
+    extend: {
+        classGroups: {
+            "font-size": [
+                {
+                    text: ["hero", "tiny"],
+                },
+            ],
+        },
+    },
+})
+
+cn("text-sm", "text-hero")
+// "text-hero"
+```
+
+Custom configuration is compiled lazily on first use and then reuses the compiled merge engine.
+
+### `createCn`
+
+`createCn()` creates a class-value-aware `cn` function with a custom merge configuration.
+
+It accepts:
+
+- a Tailwind-merge-style extension object,
+- a function that receives the default configuration and returns a configuration,
+- or a complete configuration object.
+
+```ts
+import { createCn } from "@obvia/cv/config"
+
+const withDefaultConfig = createCn((config) => ({
+    ...config,
+    prefix: "tw-",
+}))
+
+const withLargerCache = createCn({
+    cacheSize: 1000,
+})
+```
+
+### Extending, overriding, prefixes, and cache size
+
+Custom merge configuration supports `extend`, `override`, `prefix`, and `cacheSize`.
+
+```ts
+import { createCn } from "@obvia/cv/config"
+
+const cn = createCn({
+    prefix: "tw-",
+    cacheSize: 1000,
+    extend: {
+        classGroups: {
+            "font-size": [{ text: ["hero"] }],
+        },
+    },
+})
+```
+
+Use `extend` to append to the default Tailwind model and `override` when a group should replace the default definition. `prefix` configures prefixed Tailwind utility recognition, while `cacheSize` controls the custom merge engine's result cache.
+
+### `createTwMerge` and `extendTailwindMerge`
+
+Use `createTwMerge()` when you specifically need the lower-level `twMerge`-compatible variadic API.
+
+```ts
+import {
+    createTwMerge,
+    extendTailwindMerge,
+} from "@obvia/cv/config"
+
+const merge = createTwMerge({
+    extend: {
+        classGroups: {
+            "font-size": [{ text: ["hero"] }],
+        },
+    },
+})
+
+merge("text-sm", "text-hero")
+```
+
+`extendTailwindMerge` is an alias of `createTwMerge` for familiar migration semantics.
+
+### Theme references and validators
+
+`fromTheme()` and `validators` provide compiler-recognized markers for custom class-group definitions.
+
+```ts
+import {
+    createCn,
+    fromTheme,
+    validators,
+} from "@obvia/cv/config"
+
+const cn = createCn({
+    extend: {
+        classGroups: {
+            spacing: [{ gap: [fromTheme("spacing")] }],
+            "font-size": [
+                {
+                    text: ["hero", validators.isArbitraryLength],
+                },
+            ],
+        },
+    },
+})
+```
+
+Marker validators are preferred for custom groups because the merge compiler can convert them into its optimized internal representation.
+
+### Configuration utilities
+
+The config entry also exports `defaultConfig` and `mergeConfigs` for tooling or advanced configuration composition.
+
+```ts
+import {
+    defaultConfig,
+    mergeConfigs,
+} from "@obvia/cv/config"
+
+const config = mergeConfigs(defaultConfig(), {
+    extend: {
+        classGroups: {
+            "font-size": [{ text: ["hero"] }],
+        },
+    },
+})
+```
+
+These APIs are intended for advanced integration code. Most applications only need the root `cn` export or `createCn()`.
+
+### Schema introspection
+
+`@obvia/cv/schema` exposes a typed schema representation of public variants.
+
+```ts
+import { cv } from "@obvia/cv"
+import { getSchema } from "@obvia/cv/schema"
+
+const button = cv({
+    variants: {
+        size: {
+            sm: "h-8",
+            md: "h-10",
+        },
+        disabled: {
+            true: "opacity-50",
+            false: "",
+        },
+        _internal: {
+            on: "internal-on",
+            off: "internal-off",
+        },
+    },
+    defaultVariants: {
+        size: "md",
+        disabled: false,
+        _internal: "off",
+    },
+})
+
+getSchema(button)
+// {
+//     size: { values: ["sm", "md"], defaultValue: "md" },
+//     disabled: { values: [true, false], defaultValue: false },
+// }
+```
+
+Schema values preserve boolean and numeric variant semantics rather than exposing every key as a string. Internal `_`-prefixed variants are excluded.
+
+### Tailwind CSS v4 entry
+
+The optional stylesheet entry can be imported when the package's Tailwind v4 custom variant is useful to the application.
+
+```css
+@import "@obvia/cv/tailwindcss";
+```
+
+This entry defines the `base` custom variant and is published as side-effectful CSS separately from the JavaScript API.
+
+### Package entry points
+
+CVX intentionally keeps the default import surface compact while advanced functionality lives behind subpath exports.
+
+```ts
+import { cn, cv, cx, configure, twJoin, twMerge } from "@obvia/cv"
+import { createCn, createTwMerge } from "@obvia/cv/config"
+import { getSchema } from "@obvia/cv/schema"
+```
+
+Available package entry points are:
+
+- **`@obvia/cv`** — `cv`, `cx`, `cn`, `configure`, `twJoin`, `twMerge`, and public types.
+- **`@obvia/cv/config`** — custom Tailwind merge configuration and configuration types.
+- **`@obvia/cv/schema`** — typed variant schema introspection.
+- **`@obvia/cv/tailwindcss`** — optional Tailwind CSS v4 stylesheet entry.
+
+### ESM and CommonJS
+
+The package publishes both ESM and CommonJS JavaScript builds together with generated TypeScript declarations and source maps. The package manager and verification workflow are Bun-first, while the distributed JavaScript entry points are not restricted to Bun-only consumption.
+
