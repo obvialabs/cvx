@@ -156,7 +156,7 @@ export interface VariantProgram {
   mergedVariants: VariantShape
 
   /**
-   * Dense lookup state, `null` when unsupported, or `undefined` before evaluation
+   * Dense lookup state, `null` when unsupported, or `undefined` before compilation
    */
   dense?: DenseTable | null
 

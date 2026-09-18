@@ -8,6 +8,11 @@ import type { CompoundSelector, PreparedCompound } from "./model"
 const EMPTY_COMPOUNDS: readonly PreparedCompound[] = Object.freeze([])
 
 /**
+ * Read-key count below which direct linear lookup avoids Map setup overhead
+ */
+const LINEAR_READ_KEY_LIMIT = 8
+
+/**
  * Prepare authored compound rules for repeated runtime matching
  *
  * **Parameters**
@@ -30,11 +35,17 @@ export function prepareCompounds(
   // produces one prepared runtime rule
   const prepared = new Array<PreparedCompound>(compounds.length)
 
-  // Map existing read keys to their stable runtime indexes
-  const keyIndex = new Map<string, number>()
+  // Small variant sets are cheaper to scan directly than to materialize a Map.
+  // Promote to indexed lookup only when the shared key set grows large enough
+  // for repeated linear scans to become more expensive than the allocation.
+  let keyIndex: Map<string, number> | undefined
 
-  for (let index = 0; index < readKeys.length; index++) {
-    keyIndex.set(readKeys[index], index)
+  if (readKeys.length >= LINEAR_READ_KEY_LIMIT) {
+    keyIndex = new Map<string, number>()
+
+    for (let index = 0; index < readKeys.length; index++) {
+      keyIndex.set(readKeys[index], index)
+    }
   }
 
   // Prepare every authored compound rule independently
@@ -53,14 +64,27 @@ export function prepareCompounds(
         continue
       }
 
-      // Reuse an existing read index when the variant key is already known
-      let readIndex = keyIndex.get(key)
+      // Reuse an existing read index when the variant key is already known.
+      // Tiny key sets stay allocation-free and use a short linear scan.
+      let readIndex = keyIndex
+          ? keyIndex.get(key)
+          : readKeys.indexOf(key)
 
-      if (readIndex === undefined) {
+      if (readIndex === undefined || readIndex < 0) {
         // Extend the shared read-key collection for previously unseen selectors
         readIndex = readKeys.length
         readKeys.push(key)
-        keyIndex.set(key, readIndex)
+
+        if (keyIndex) {
+          keyIndex.set(key, readIndex)
+        } else if (readKeys.length >= LINEAR_READ_KEY_LIMIT) {
+          // Promote once when the collection crosses the adaptive threshold
+          keyIndex = new Map<string, number>()
+
+          for (let keyOffset = 0; keyOffset < readKeys.length; keyOffset++) {
+            keyIndex.set(readKeys[keyOffset], keyOffset)
+          }
+        }
       }
 
       // Store the resolved read index in the same order as its selector

@@ -21,6 +21,45 @@ const EMPTY_COMPONENTS: readonly CVComponentShape[] = Object.freeze([])
 const programs = new WeakMap<Function, VariantProgram>()
 
 /**
+ * Programs that completed one general render before dense compilation
+ *
+ * Keeping this state outside `VariantProgram.dense` preserves the monomorphic
+ * dense-table hot path while still allowing one-shot components to skip compile work.
+ */
+const deferredDensePrograms = new WeakSet<VariantProgram>()
+
+/**
+ * Prepare dense lookup only after a program is observed for the second time
+ *
+ * The first call records reuse intent and returns `null` only for that render.
+ * Keeping this cold decision outside the renderer preserves its steady-state
+ * branch structure once a dense table has been compiled.
+ *
+ * **Parameters**
+ * - `program` – Prepared variant program considered for dense promotion
+ *
+ * **Returns**
+ * - `DenseTable | null` – Compiled table on reuse, otherwise `null` for the current render
+ */
+function prepareDenseOnReuse(
+    program: VariantProgram,
+): ReturnType<typeof buildDenseTable> | null {
+  // Record the first render without compiling a table for a one-shot component
+  if (!deferredDensePrograms.has(program)) {
+    deferredDensePrograms.add(program)
+    return null
+  }
+
+  // Promote exactly once when the same prepared program is rendered again
+  deferredDensePrograms.delete(program)
+
+  const dense = buildDenseTable(program) ?? null
+  program.dense = dense
+
+  return dense
+}
+
+/**
  * Associate a generated resolver with its prepared executable program
  *
  * **Parameters**
@@ -74,8 +113,9 @@ function renderUncached(
     props: Record<string, unknown>,
     defaults: Readonly<Record<string, unknown>>,
 ): string {
-  // Collect prepared class values before joining them into the final output
-  const output: ClassValue[] = []
+  // Append directly into the final string so uncached renders avoid allocating
+  // an intermediate class-value collection before normalization.
+  let output = ""
 
   // Render composed CV programs using the same runtime props and inherited defaults
   for (let index = 0; index < program.children.length; index++) {
@@ -83,7 +123,7 @@ function renderUncached(
 
     // Append child output only when the child produced classes
     if (rendered) {
-      output.push(rendered)
+      output = appendClassValue(output, rendered)
     }
   }
 
@@ -108,14 +148,14 @@ function renderUncached(
 
       // Append foreign output only when the component produced classes
       if (rendered) {
-        output.push(rendered)
+        output = appendClassValue(output, rendered)
       }
     }
   }
 
   // Append the local base class before resolving local variants
   if (program.base !== undefined) {
-    output.push(program.base)
+    output = appendClassValue(output, program.base)
   }
 
   // Resolve every locally declared variant against runtime props and defaults
@@ -129,7 +169,7 @@ function renderUncached(
 
     // Append only variants that resolve to a defined class value
     if (value !== undefined) {
-      output.push(value)
+      output = appendClassValue(output, value)
     }
   }
 
@@ -173,18 +213,18 @@ function renderUncached(
 
       // Preserve the authored `class` compound value when present
       if (candidate.classValue !== undefined) {
-        output.push(candidate.classValue)
+        output = appendClassValue(output, candidate.classValue)
       }
 
       // Preserve the authored `className` compound value when present
       if (candidate.classNameValue !== undefined) {
-        output.push(candidate.classNameValue)
+        output = appendClassValue(output, candidate.classNameValue)
       }
     }
   }
 
-  // Normalize all prepared values into the final class string
-  return joinPrepared(output)
+  // Return the incrementally normalized class string
+  return output
 }
 
 /**
@@ -265,7 +305,7 @@ export function createProgram(
     localVariantMaps,
     readKeys,
     compounds,
-    defaults: Object.freeze({ ...merged.defaults }),
+    defaults: Object.freeze(merged.defaults),
     mergedVariants: merged.variants,
     render: undefined as never,
   }
@@ -308,10 +348,9 @@ export function createProgram(
     } else {
       let dense = program.dense
 
-      // Build the dense lookup table lazily on the first eligible render
+      // Defer dense compilation until the component proves it will be reused
       if (dense === undefined) {
-        dense = buildDenseTable(program) ?? null
-        program.dense = dense
+        dense = prepareDenseOnReuse(program)
       }
 
       if (dense) {
@@ -349,7 +388,8 @@ export function createProgram(
           )
         }
       } else {
-        // Execute the general path when dense compilation is unavailable
+        // Execute the general path before promotion or when dense compilation
+        // is unavailable for the current program.
         core = renderUncached(
             program,
             props,
