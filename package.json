@@ -51,12 +51,17 @@
   "files"           : ["dist", "license.md", "readme.md"],
 
   "packageManager"  : "bun@1.4.2",
-  "publishConfig"   : {
+  "publishConfig"     : {
     "access"      : "public",
     "provenance"  : true
   },
-  "repository"      : {
-    "type"  : "git",
-    "url"   : "git+https://github.com/obvialabs/cvx.git"
+  "publisher"         : {
+    "type"        : "github",
+    "user"        : "obvialabs",
+    "repo"        : "cvx"
+  },
+  "repository"        : {
+    "type"        : "git",
+    "url"         : "git+https://github.com/obvialabs/cvx.git"
   }
 }
