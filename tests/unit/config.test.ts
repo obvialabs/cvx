@@ -1,18 +1,17 @@
 import { describe, expect, test } from "bun:test";
 
 import {
-  createCn,
-  createTwMerge,
+  createConfiguredCn,
+  createConfiguredMerge,
   defaultConfig,
-  extendTailwindMerge,
   fromTheme,
   mergeConfigs,
   validators,
-} from "../../src/cn/internal/configuration";
+} from "../../src/cn/internal/factory";
 
 describe("custom cn configuration", () => {
-  test("createCn extends class groups", () => {
-    const merge = createCn({
+  test("createConfiguredCn extends class groups", () => {
+    const merge = createConfiguredCn({
       extend: {
         classGroups: {
           "font-size": [{ text: ["hero", "tiny"] }],
@@ -24,20 +23,16 @@ describe("custom cn configuration", () => {
     expect(merge("text-tiny", "text-lg")).toBe("text-lg");
   });
 
-  test("createTwMerge exposes string/nested-array merge semantics", () => {
-    const merge = createTwMerge();
+  test("createConfiguredMerge exposes string/nested-array merge semantics", () => {
+    const merge = createConfiguredMerge();
 
     expect(merge("p-2", ["p-4", "text-sm"], "text-lg")).toBe(
       "p-4 text-lg",
     );
   });
 
-  test("extendTailwindMerge remains the createTwMerge migration alias", () => {
-    expect(extendTailwindMerge).toBe(createTwMerge);
-  });
-
   test("supports transform-based custom configuration", () => {
-    const merge = createCn((config) =>
+    const merge = createConfiguredCn((config) =>
       mergeConfigs(config, {
         extend: {
           classGroups: {

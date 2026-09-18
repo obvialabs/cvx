@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 
-import { defaultConfig } from "../../src/cn/internal/configuration";
-import { compileToTables } from "../../src/cn/internal/compiler";
+import { defaultConfig } from "../../src/cn/internal/factory";
+import { compileToTables } from "../../src/cn/internal/compiler/index";
+import { createEngine } from "../../src/cn/internal/engine/index";
 import {
-  clsx,
-  createEngine,
-  twJoin,
-  wrapClsx,
-} from "../../src/cn/internal/engine";
+  composeClassValues,
+  joinMergeInputs,
+  wrapComposer,
+} from "../../src/cn/internal/engine/compose";
 
 describe("cn runtime engine", () => {
   const build = (cacheSize: number) => {
@@ -49,13 +49,13 @@ describe("cn runtime engine", () => {
     );
   });
 
-  test("engine clsx and twJoin expose distinct object behavior", () => {
-    expect(clsx("a", { b: true, c: false }, ["d"])).toBe("a b d");
-    expect(twJoin("a", ["b", ["c"]])).toBe("a b c");
+  test("engine composition modes keep object and merge-input behavior distinct", () => {
+    expect(composeClassValues("a", { b: true, c: false }, ["d"])).toBe("a b d");
+    expect(joinMergeInputs("a", ["b", ["c"]])).toBe("a b c");
   });
 
-  test("wrapClsx handles string identity hot paths without changing semantics", () => {
-    const merge = wrapClsx((value) => value.toUpperCase());
+  test("composition wrapper handles string identity hot paths without changing semantics", () => {
+    const merge = wrapComposer((value) => value.toUpperCase());
 
     expect(merge("a", "b")).toBe("A B");
     expect(merge("a", "b")).toBe("A B");

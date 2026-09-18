@@ -6,7 +6,7 @@ import {
 } from "tailwind-merge";
 
 import { cn } from "../../src/index";
-import { createCn, createTwMerge } from "../../src/cn/internal/configuration";
+import { createConfiguredCn, createConfiguredMerge } from "../../src/cn/internal/factory";
 
 const utilities = [
   "p-0",
@@ -96,7 +96,7 @@ describe("cn differential parity", () => {
       },
     } as const;
 
-    const current = createCn(extension);
+    const current = createConfiguredCn(extension);
     const baseline = baselineExtendTailwindMerge(extension);
 
     const cases = [
@@ -121,7 +121,7 @@ describe("cn differential parity", () => {
       },
     } as const;
 
-    const current = createTwMerge(extension);
+    const current = createConfiguredMerge(extension);
     const baseline = baselineExtendTailwindMerge(extension);
     const cases = [
       ["shadow-sm", "shadow-soft"],

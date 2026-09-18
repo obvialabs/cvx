@@ -1,28 +1,34 @@
 /**
- * Internal configuration bridge for the `cn` domain.
+ * Internal factory layer for the `cn` domain.
  *
- * CVX does not expose configuration helpers publicly. These factories exist so
- * generated tables, differential tests, and future build-time tooling can share
- * one compiler contract without expanding the npm API surface.
+ * CVX does not expose configuration helpers publicly. These factories connect configuration compilation to the runtime engine for
+ * differential tests and internal tooling without expanding the npm API
+ * surface.
  *
  * @internal
  */
 
+import { compileToTables } from "./compiler/index.js"
 import {
-  compileToTables,
   mergeConfigs,
   type CnConfig,
-  type ClassGroupDef,
-  type ConfigExtension,
-  type CreateCnInput,
-} from "./compiler.js"
+  type ClassGroupDefinition,
+  type CnConfigExtension,
+  type CnConfigurationInput,
+} from "./compiler/config.js"
 import { getDefaultCnConfig } from "./generated/default-config.js"
-import { createEngine, wrapClsx } from "./engine.js"
+import { createEngine } from "./engine/index.js"
+import { wrapComposer } from "./engine/compose.js"
 import type { CnFunction, Engine } from "./types.js"
 
 export { getDefaultCnConfig as defaultConfig }
 export { mergeConfigs }
-export type { CnConfig, ClassGroupDef, ConfigExtension, CreateCnInput }
+export type {
+  CnConfig,
+  ClassGroupDefinition,
+  CnConfigExtension,
+  CnConfigurationInput,
+}
 export type {
   DefaultClassGroupIds,
   DefaultThemeGroupIds,
@@ -32,9 +38,9 @@ export type {
 export const fromTheme = (key: string): { $t: string } => ({ $t: key })
 
 /**
- * Marker-form validators for custom class groups (compiled to allocation-free
- * span opcodes — prefer these over passing tailwind-merge's validator
- * functions, which run as slower custom validators).
+ * Marker-form validators for custom class groups. Known markers compile to
+ * allocation-free span opcodes; function validators remain available to
+ * internal tooling when a custom predicate is unavoidable.
  */
 export const validators = {
   isAny: { $v: "isAny" },
@@ -70,7 +76,7 @@ const isFullConfig = (input: object): input is CnConfig =>
   "conflictingClassGroups" in input
 
 const resolveConfig = (
-  input?: CreateCnInput
+  input?: CnConfigurationInput
 ): { config: CnConfig; cacheSize?: number } => {
   if (input === undefined) return { config: getDefaultCnConfig() }
   if (typeof input === "function")
@@ -82,7 +88,7 @@ const resolveConfig = (
   }
 }
 
-const buildEngine = (input?: CreateCnInput): Engine => {
+const buildEngine = (input?: CnConfigurationInput): Engine => {
   const { config, cacheSize } = resolveConfig(input)
   const { tables, validatorImpls, prefix } = compileToTables(config)
   return createEngine(tables, validatorImpls, { cacheSize, prefix })
@@ -94,10 +100,12 @@ const buildEngine = (input?: CreateCnInput): Engine => {
  *
  * @internal
  */
-export const createCn = (input?: CreateCnInput): CnFunction => {
+export const createConfiguredCn = (
+  input?: CnConfigurationInput,
+): CnFunction => {
   let engine: Engine | null = null
   const getEngine = (): Engine => engine ?? (engine = buildEngine(input))
-  return wrapClsx((s: string) => getEngine().mergeString(s), {
+  return wrapComposer((s: string) => getEngine().mergeString(s), {
     seenBefore: (s: string) => getEngine().seenBefore(s),
     mergeUncached: (s: string) => getEngine().mergeUncached(s),
   })
@@ -108,7 +116,9 @@ export const createCn = (input?: CreateCnInput): CnFunction => {
  *
  * @internal
  */
-export const createTwMerge = (input?: CreateCnInput): Engine["merge"] => {
+export const createConfiguredMerge = (
+  input?: CnConfigurationInput,
+): Engine["merge"] => {
   let engine: Engine | null = null
   return function (): string {
     if (engine === null) engine = buildEngine(input)
@@ -117,5 +127,3 @@ export const createTwMerge = (input?: CreateCnInput): Engine["merge"] => {
   } as Engine["merge"]
 }
 
-/** @internal Compatibility alias retained only inside the `cn` domain. */
-export const extendTailwindMerge = createTwMerge

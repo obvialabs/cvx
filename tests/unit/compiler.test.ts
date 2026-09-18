@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { defaultConfig } from "../../src/cn/internal/configuration";
+import { defaultConfig } from "../../src/cn/internal/factory";
 import {
   compileStats,
   compileToSource,
@@ -8,7 +8,7 @@ import {
   mergeConfigs,
   subsetConfig,
   type CnConfig,
-} from "../../src/cn/internal/compiler";
+} from "../../src/cn/internal/compiler/index";
 
 describe("cn compiler", () => {
   test("compiles the default model to dense engine tables", () => {

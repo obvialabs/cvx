@@ -9,44 +9,22 @@
  * @internal
  */
 
-import type { Tables, ValidatorImpls } from "./types.js"
-import * as refValidators from "./validators.js"
+import type { Tables, ValidatorImpls } from "../types.js"
+import * as refValidators from "../validators.js"
 
-export type ClassGroupDef =
-  | string
-  | { $v: string }
-  | { $t: string }
-  | ((value: string) => boolean)
-  | { [key: string]: readonly ClassGroupDef[] }
+import {
+  cloneConfig,
+  type ClassGroupDefinition,
+  type CnConfig,
+} from "./config.js"
 
-export interface CnConfig {
-  theme: Record<string, ClassGroupDef[]>
-  classGroups: Record<string, ClassGroupDef[]>
-  conflictingClassGroups: Record<string, readonly string[]>
-  conflictingClassGroupModifiers: Record<string, readonly string[]>
-  orderSensitiveModifiers: string[]
-  postfixLookupClassGroups?: readonly string[]
-  prefix?: string
-}
-
-type ConfigExtensionGroups = {
-  theme: Record<string, readonly ClassGroupDef[]>
-  classGroups: Record<string, readonly ClassGroupDef[]>
-  conflictingClassGroups: Record<string, readonly string[]>
-  conflictingClassGroupModifiers: Record<string, readonly string[]>
-  orderSensitiveModifiers: readonly string[]
-}
-
-export interface ConfigExtension {
-  prefix?: string
-  cacheSize?: number
-  override?: Partial<ConfigExtensionGroups>
-  extend?: Partial<ConfigExtensionGroups>
-}
-
-/** Internal configuration input accepted by the table compiler. */
-export type CreateCnInput =
-  ConfigExtension | ((config: CnConfig) => CnConfig) | CnConfig
+export type {
+  ClassGroupDefinition,
+  CnConfig,
+  CnConfigExtension,
+  CnConfigurationInput,
+} from "./config.js"
+export { mergeConfigs } from "./config.js"
 
 const isMarker = (def: object, key: string): boolean => {
   const keys = Object.keys(def)
@@ -58,81 +36,9 @@ const isMarker = (def: object, key: string): boolean => {
 }
 const isThemeGetterFn = (
   fn: unknown
-): fn is ((theme: object) => ClassGroupDef[]) & { isThemeGetter: true } =>
+): fn is ((theme: object) => ClassGroupDefinition[]) & { isThemeGetter: true } =>
   typeof fn === "function" &&
   (fn as { isThemeGetter?: boolean }).isThemeGetter === true
-
-// ---------------------------------------------------------------------------
-// mergeConfigs — extend/override semantics matching tailwind-merge
-// ---------------------------------------------------------------------------
-
-const cloneConfig = (config: CnConfig): CnConfig => ({
-  ...config,
-  theme: { ...config.theme },
-  classGroups: { ...config.classGroups },
-  conflictingClassGroups: { ...config.conflictingClassGroups },
-  conflictingClassGroupModifiers: { ...config.conflictingClassGroupModifiers },
-  orderSensitiveModifiers: [...config.orderSensitiveModifiers],
-  postfixLookupClassGroups: [...(config.postfixLookupClassGroups ?? [])],
-})
-
-export const mergeConfigs = (
-  base: CnConfig,
-  extension: ConfigExtension
-): CnConfig => {
-  const config = cloneConfig(base)
-  if (extension.prefix !== undefined) config.prefix = extension.prefix
-
-  const overrideProps = <V>(
-    target: Record<string, V>,
-    src?: Record<string, V>
-  ) => {
-    if (!src) return
-    for (const key in src) {
-      if (src[key] !== undefined) target[key] = src[key]
-    }
-  }
-  const ov = extension.override
-  if (ov) {
-    if (ov.orderSensitiveModifiers)
-      config.orderSensitiveModifiers = [...ov.orderSensitiveModifiers]
-    overrideProps(config.theme, ov.theme)
-    overrideProps(config.classGroups, ov.classGroups)
-    overrideProps(config.conflictingClassGroups, ov.conflictingClassGroups)
-    overrideProps(
-      config.conflictingClassGroupModifiers,
-      ov.conflictingClassGroupModifiers
-    )
-  }
-
-  const extendArrays = <V>(
-    target: Record<string, readonly V[]>,
-    src?: Record<string, readonly V[]>
-  ) => {
-    if (!src) return
-    for (const key in src) {
-      const add = src[key]
-      if (add) target[key] = (target[key] ?? []).concat(add)
-    }
-  }
-  const ex = extension.extend
-  if (ex) {
-    if (ex.orderSensitiveModifiers) {
-      config.orderSensitiveModifiers = [
-        ...config.orderSensitiveModifiers,
-        ...ex.orderSensitiveModifiers,
-      ]
-    }
-    extendArrays(config.theme, ex.theme)
-    extendArrays(config.classGroups, ex.classGroups)
-    extendArrays(config.conflictingClassGroups, ex.conflictingClassGroups)
-    extendArrays(
-      config.conflictingClassGroupModifiers,
-      ex.conflictingClassGroupModifiers
-    )
-  }
-  return config
-}
 
 // ---------------------------------------------------------------------------
 // validator resolution
@@ -225,7 +131,7 @@ const resolveValidator = (
 }
 
 // ---------------------------------------------------------------------------
-// part-trie construction (mirrors tailwind-merge's createClassMap)
+// part-trie construction
 // ---------------------------------------------------------------------------
 
 interface PartNode {
@@ -241,7 +147,7 @@ const newPartNode = (): PartNode => ({
   lit: [],
 })
 
-const expandTheme = (config: CnConfig, key: string): readonly ClassGroupDef[] =>
+const expandTheme = (config: CnConfig, key: string): readonly ClassGroupDefinition[] =>
   config.theme[key] ?? []
 
 const buildPartTrie = (
@@ -261,7 +167,7 @@ const buildPartTrie = (
     }
     return node
   }
-  const process = (def: ClassGroupDef, node: PartNode, gid: number): void => {
+  const process = (def: ClassGroupDefinition, node: PartNode, gid: number): void => {
     if (typeof def === "string") {
       const target = def === "" ? node : getPart(node, def)
       target.classGroupId = gid
@@ -291,7 +197,7 @@ const buildPartTrie = (
       return
     }
     for (const [key, value] of Object.entries(
-      def as { [key: string]: readonly ClassGroupDef[] }
+      def as { [key: string]: readonly ClassGroupDefinition[] }
     )) {
       const child = getPart(node, key)
       for (const inner of value) process(inner, child, gid)
@@ -955,7 +861,7 @@ export const compileToSource = (
     throw new Error(
       "cn compiler: configs with custom validator functions cannot be emitted as a module " +
         `(functions are not serializable): ${m.customNames.join(", ")}. ` +
-        "Use createCn(config) at runtime instead."
+        "Use the internal configured composer factory at runtime instead."
     )
   }
   const ts = options.lang === "ts"

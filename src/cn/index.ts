@@ -1,12 +1,12 @@
 /**
  * Tailwind-aware class conflict resolution for `@obvia/cvx`.
  *
- * The packed lookup engine is derived from MIT-licensed work in the `cn` /
- * `tailwind-merge` ecosystem. Attribution is preserved in the repository
- * notices while the implementation remains private to this domain.
+ * The public function is intentionally tiny: all parsing, conflict tables,
+ * caching, and merge state stay private to the `cn` domain.
  */
 import tables from "./internal/generated/tables.js";
-import { createEngine, wrapClsx } from "./internal/engine.js";
+import { createEngine } from "./internal/engine/index.js";
+import { wrapComposer } from "./internal/engine/compose.js";
 
 import type { ClassComposer } from "../cx/types.js";
 
@@ -25,7 +25,7 @@ const engine = /* @__PURE__ */ createEngine(tables);
  * // => "px-4 text-sm"
  * ```
  */
-export const cn: ClassComposer = /* @__PURE__ */ wrapClsx(
+export const cn: ClassComposer = /* @__PURE__ */ wrapComposer(
   engine.mergeString,
   engine,
 ) as ClassComposer;

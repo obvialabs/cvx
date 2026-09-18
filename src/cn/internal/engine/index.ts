@@ -1,73 +1,22 @@
 /**
- * Single-pass Tailwind conflict engine used by `cn`.
+ * Packed conflict-resolution runtime for the `cn` domain.
  *
- * The hot path scans class strings into packed radix-table lookups, interns
- * modifier contexts, records conflict claims, and emits surviving spans. The
- * implementation avoids token arrays and parse objects on common paths.
+ * The engine owns utility parsing, modifier normalization, conflict claims,
+ * and whole-string caching. Input composition lives in `compose.ts` so this
+ * module can stay focused on the merge state machine and its hot data paths.
  *
  * @internal
  */
 
-import type {
-  ClassNameValue,
-  ClassValue,
-  CnFunction,
-  Engine,
-  EngineOptions,
-  FreshMerge,
-  Tables,
-  ValidatorImpls,
-} from "./types.js"
+import { joinMergeInputs } from "./compose.js"
+import { hashSampledSpan, hashSpan } from "./hash.js"
 
-// JavaScriptCore (Bun, Safari) puts `line` on Error instances; V8 does not
+import type { Engine, EngineOptions, Tables, ValidatorImpls } from "../types.js"
+
 const IS_JSC = "line" in new Error()
 
 const EXTERNAL = -1
 const DEAD = -1
-
-const fnv = (str: string, s: number, e: number): number => {
-  let h = 0x811c9dc5
-  for (let p = s; p < e; p++) h = Math.imul(h ^ str.charCodeAt(p), 0x01000193)
-  return h
-}
-
-// positional span hash: O(1) regardless of length; samples head, quarter
-// points, and tail. Used only by the doorkeeper, whose full-hash tag makes
-// a collision cost one wasted cache insert, never a wrong result.
-const spanHash = (str: string, s: number, e: number): number => {
-  const len = e - s
-  let h = Math.imul(len, 0x9e3779b1) ^ str.charCodeAt(s)
-  if (len > 3) {
-    const q = len >> 2
-    const m = len >> 1
-    h = Math.imul(
-      h ^
-        (str.charCodeAt(s + 1) << 8) ^
-        (str.charCodeAt(s + 2) << 16) ^
-        str.charCodeAt(s + q),
-      0x85ebca6b
-    )
-    h = Math.imul(
-      h ^
-        (str.charCodeAt(s + m) << 8) ^
-        (str.charCodeAt(s + m + q) << 16) ^
-        str.charCodeAt(e - 3),
-      0xc2b2ae35
-    )
-    h ^= (str.charCodeAt(e - 2) << 8) ^ (str.charCodeAt(e - 1) << 16)
-    // arbitrary values keep their digits a few chars from an end
-    // (`w-[123px]`, `bg-[#a1b2c3]`), between the samples above: fold five
-    // more chars from each end, walking inwards, so those strings stop
-    // colliding (one loop, two reads: the fold has to stay small enough
-    // for mergeCached to keep inlining into its callers)
-    for (let p = s + 3, q = e - 4; p < s + 8 && p < q; p++, q--)
-      h = Math.imul(
-        h ^ str.charCodeAt(p) ^ (str.charCodeAt(q) << 8),
-        0x01000193
-      )
-  }
-  return (h ^ (h >>> 15)) | 0
-}
 
 export const createEngine = (
   T: Tables,
@@ -152,7 +101,7 @@ export const createEngine = (
   for (let i = 0; i < litAnchor.length; i++) {
     const off = poolOffsets[litPool[i] * 2]
     let idx =
-      ((fnv(poolText, off, off + poolOffsets[litPool[i] * 2 + 1]) ^
+      ((hashSpan(poolText, off, off + poolOffsets[litPool[i] * 2 + 1]) ^
         Math.imul(litAnchor[i], 0x9e3779b1)) |
         0) &
       (LIT_SIZE - 1)
@@ -166,7 +115,7 @@ export const createEngine = (
     e: number
   ): number => {
     let idx =
-      ((fnv(input, s, e) ^ Math.imul(anchor, 0x9e3779b1)) | 0) & (LIT_SIZE - 1)
+      ((hashSpan(input, s, e) ^ Math.imul(anchor, 0x9e3779b1)) | 0) & (LIT_SIZE - 1)
     const len = e - s
     for (;;) {
       const entry = litTable[idx]
@@ -199,7 +148,7 @@ export const createEngine = (
 
   // ---- span validators ----------------------------------------------------
   // Opcodes over (input, start, end) spans — no substring, no regex on the
-  // hot path; exact tailwind-merge semantics incl. the arbitrary-value
+  // hot path; the complete arbitrary-value
   // regex's label backtracking. Rare shapes fall back to lazy slice + regex.
   const vCustom = (customValidatorNames ?? []).map((name) => {
     const fn = validatorImpls && validatorImpls[name]
@@ -386,7 +335,7 @@ export const createEngine = (
     imp: number,
     make: (raw: string) => number
   ): number => {
-    const h = (fnv(input, s, e) ^ (imp ? 0x9e3779b9 : 0)) | 0
+    const h = (hashSpan(input, s, e) ^ (imp ? 0x9e3779b9 : 0)) | 0
     let bucket = map.get(h)
     if (bucket !== undefined) {
       outer: for (let b = 0; b < bucket.length; b++) {
@@ -411,7 +360,7 @@ export const createEngine = (
 
   const canonicalizeContext = (raw: string, important: boolean): number => {
     // split raw prefix at top-level ':' (depth-guarded), then segment-sort
-    // exactly like tailwind-merge's sortModifiers
+    // while preserving order-sensitive modifier boundaries
     const mods = []
     let dB = 0,
       dP = 0,
@@ -1026,7 +975,7 @@ export const createEngine = (
     // object-property read with a V8-cached hash
     let merged = cache[input]
     if (merged !== undefined) return merged
-    const hash = spanHash(input, 0, input.length)
+    const hash = hashSampledSpan(input, 0, input.length)
     const slot = (hash & (DOOR_SIZE - 1)) + doorBase
     const wasSeen =
       door[slot] === (hash ^ doorEpoch) ||
@@ -1061,7 +1010,7 @@ export const createEngine = (
   const mergeCachedMap = (input: string): string => {
     let merged = cacheMap.get(input)
     if (merged !== undefined) return merged
-    const hash = spanHash(input, 0, input.length)
+    const hash = hashSampledSpan(input, 0, input.length)
     const slot = (hash & (DOOR_SIZE - 1)) + doorBase
     const wasSeen =
       door[slot] === (hash ^ doorEpoch) ||
@@ -1094,7 +1043,7 @@ export const createEngine = (
   // answers "never seen" in O(1) instead, so the caller can merge a
   // one-shot string uncached and skip caching it anywhere
   const seenBefore = (input: string): boolean => {
-    const hash = spanHash(input, 0, input.length)
+    const hash = hashSampledSpan(input, 0, input.length)
     const slot = (hash & (DOOR_SIZE - 1)) + doorBase
     if (
       door[slot] === (hash ^ doorEpoch) ||
@@ -1123,7 +1072,7 @@ export const createEngine = (
   const merge = function (): string {
     return arguments.length === 1 && typeof arguments[0] === "string"
       ? mergeString(arguments[0])
-      : mergeString(twJoin.apply(null, arguments as never))
+      : mergeString(joinMergeInputs.apply(null, arguments as never))
   } as Engine["merge"]
 
   return {
@@ -1134,353 +1083,3 @@ export const createEngine = (
   }
 }
 
-// shared value resolution. clsxMode adds clsx's extras (numbers, object
-// syntax); twJoin mode ignores them, matching tailwind-merge's twJoin.
-const resolveValue = (v: ClassValue, clsxMode: boolean): string => {
-  if (!v) return ""
-  if (typeof v === "string") return v
-  let out = ""
-  if (
-    typeof (v as { length?: unknown }).length === "number" &&
-    (clsxMode ? Array.isArray(v) : true)
-  ) {
-    const arr = v as ArrayLike<ClassValue>
-    for (let i = 0; i < arr.length; i++) {
-      const item = arr[i]
-      if (!item) continue
-      const r = typeof item === "string" ? item : resolveValue(item, clsxMode)
-      if (r) {
-        if (out) out += " "
-        out += r
-      }
-    }
-    return out
-  }
-  if (clsxMode) {
-    if (typeof v === "object") {
-      for (const k in v)
-        if ((v as Record<string, unknown>)[k]) {
-          if (out) out += " "
-          out += k
-        }
-      return out
-    }
-    if (typeof v === "number" || typeof v === "bigint") return "" + v
-  }
-  return out
-}
-
-const joinArgs = (args: IArguments, clsxMode: boolean): string => {
-  let s = ""
-  for (let i = 0; i < args.length; i++) {
-    const a = args[i]
-    if (!a) continue
-    const r =
-      typeof a === "string" ? a : resolveValue(a as ClassValue, clsxMode)
-    if (r) {
-      if (s) s += " "
-      s += r
-    }
-  }
-  return s
-}
-
-/** join-only, `twJoin`-compatible (strings + nested arrays, falsy skipped) */
-export const twJoin = function (): string {
-  return joinArgs(arguments, false)
-} as (...inputs: ClassNameValue[]) => string
-
-/** join-only, `clsx`-compatible (no merging) */
-export const clsx = function (): string {
-  return joinArgs(arguments, true)
-} as (...inputs: ClassValue[]) => string
-
-// clsx-parity join over any mergeString. Separate export so merge-only
-// consumers tree-shake it.
-interface ArgEntry {
-  /** merged result */
-  r: string
-  /** truthy arg count (=== a.length, denormalized for the unrolled probes) */
-  t: number
-  /** first three truthy args, '' padded — monomorphic fields so the arity
-   *  fronts verify without an array indirection */
-  a0: string
-  a1: string
-  a2: string
-  /** the truthy string args, in order (identity-compared; generic paths) */
-  a: string[]
-  /** the entry that followed this one last time (sequence prediction) */
-  n: ArgEntry | null
-}
-
-export const wrapClsx = (
-  mergeString: (input: string) => string,
-  fresh?: FreshMerge
-): CnFunction => {
-  // without an engine's doorkeeper every join counts as seen and is cached
-  const seenBefore = fresh === undefined ? () => true : fresh.seenBefore
-  const mergeUncached = fresh === undefined ? mergeString : fresh.mergeUncached
-  // arg-identity cache: repeated calls whose truthy args are the same string
-  // *instances* (stable JSX literals — the dominant component shape) skip
-  // the re-join and the O(n) hash of the fresh joined string. Only engages
-  // when every truthy arg is a string: objects/arrays are mutable at the
-  // same identity, so they always take the full resolve path.
-  //
-  // Render loops replay call *sequences*, not just calls, so each entry also
-  // remembers which entry came next last time. When the prediction verifies
-  // (pure identity compares), the call skips even the bucket lookup.
-  let argCache = new Map<string, ArgEntry[]>()
-  let prevArgCache = new Map<string, ArgEntry[]>()
-  let argCount = 0
-  let lastHit: ArgEntry | null = null
-
-  // unrolled truthy-sequence verify for arity ≤ 3, against the entry's
-  // monomorphic fields. Arity-2 calls pass '' as v2: a falsy pad skips the
-  // slot, so the same code serves both arities. Non-string truthy args can
-  // never strict-equal a string field, so they fail here and take the
-  // resolve path below.
-  const match3 = (
-    e: ArgEntry,
-    v0: ClassValue,
-    v1: ClassValue,
-    v2: ClassValue
-  ): boolean => {
-    let k = 0
-    if (v0) {
-      if (v0 !== e.a0) return false
-      k = 1
-    }
-    if (v1) {
-      if (v1 !== (k === 0 ? e.a0 : e.a1)) return false
-      k++
-    }
-    if (v2) {
-      if (v2 !== (k === 0 ? e.a0 : k === 1 ? e.a1 : e.a2)) return false
-      k++
-    }
-    return k === e.t
-  }
-
-  // generic path for any arity: probes (loop form), clsx fallback for
-  // non-string args, bucket lookup, insert, chain update
-  // loop-form verify for any arity (identity compares; non-strings never match)
-  const matchN = (e: ArgEntry, vals: ClassValue[]): boolean => {
-    const ea = e.a
-    let k = 0
-    for (let i = 0; i < vals.length; i++) {
-      const v = vals[i]
-      if (!v) continue
-      if (v !== ea[k]) return false
-      k++
-    }
-    return k === e.t
-  }
-
-  const resolveArgs = (vals: ClassValue[], probed: boolean): string => {
-    const nArgs = vals.length
-    const pred = lastHit === null ? null : lastHit.n
-    if (!probed) {
-      if (pred !== null && matchN(pred, vals)) {
-        lastHit = pred
-        return pred.r
-      }
-      if (lastHit !== null && lastHit !== pred && matchN(lastHit, vals))
-        return lastHit.r
-    }
-    let first = ""
-    let firstIdx = -1
-    let truthy = 0
-    let hasResolvedValue = false
-    for (let i = 0; i < nArgs; i++) {
-      let v = vals[i]
-      if (!v) continue
-      if (typeof v !== "string") {
-        // objects and arrays resolve in place and ride the string path: a
-        // one-key object resolves to that key string itself, whose identity
-        // is stable across renders, so the arg cache still hits
-        v = vals[i] = resolveValue(v as ClassValue, true)
-        if (!v) continue
-        hasResolvedValue = true
-      }
-      if (firstIdx < 0) {
-        first = v
-        firstIdx = i
-      }
-      truthy++
-    }
-    if (truthy === 0) return ""
-    if (truthy === 1) return mergeString(first) // cheap path; chain untouched
-    if (hasResolvedValue) {
-      // the probes above saw the raw objects; retry them over the resolved
-      // strings before paying for the bucket walk
-      if (pred !== null && matchN(pred, vals)) {
-        lastHit = pred
-        return pred.r
-      }
-      if (lastHit !== null && lastHit !== pred && matchN(lastHit, vals))
-        return lastHit.r
-    }
-    let bucket = argCache.get(first)
-    if (bucket === undefined) {
-      bucket = prevArgCache.get(first)
-      if (bucket !== undefined) argCache.set(first, bucket) // promote
-    }
-    let hit: ArgEntry | null = null
-    if (bucket !== undefined) {
-      outer: for (let b = 0; b < bucket.length; b++) {
-        const e = bucket[b]!
-        if (e.t !== truthy) continue
-        const ea = e.a
-        let k = 1
-        for (let i = firstIdx + 1; i < nArgs; i++) {
-          const v = vals[i]
-          if (v && v !== ea[k++]) continue outer
-        }
-        hit = e
-        break
-      }
-    }
-    if (hit === null) {
-      let joined = first
-      const a: string[] = [first]
-      for (let i = firstIdx + 1; i < nArgs; i++) {
-        const v = vals[i]
-        if (!v) continue
-        joined += " " + (v as string)
-        a.push(v as string)
-      }
-      // a first sighting is merged straight through: no dictionary lookup
-      // on a fresh key, no cache entry anywhere, chain left untouched. A
-      // repeat pays the lookup once and caches like before.
-      if (!seenBefore(joined)) return mergeUncached(joined)
-      hit = {
-        r: mergeString(joined),
-        t: a.length,
-        a0: a[0]!,
-        a1: a[1]!,
-        a2: a[2] ?? "",
-        a,
-        n: null,
-      }
-      if (bucket === undefined) argCache.set(first, (bucket = []))
-      // a component's base string is the first arg at every usage site, so
-      // one key can carry dozens of tuples (54 in the largest corpus repo,
-      // more once per-site className props count); a tight cap evicts them
-      // faster than the sequence chain can learn them, at ~40x per call
-      if (bucket.length >= 256) bucket.shift()
-      bucket.push(hit)
-      // two-generation rotation: a full generation ages out wholesale
-      // instead of clearing everything; hot buckets get promoted on use,
-      // so replayed sequences survive rotation and the chain stays warm
-      if (++argCount > 1000) {
-        argCount = 0
-        prevArgCache = argCache
-        argCache = new Map()
-      }
-    }
-    if (lastHit !== null && lastHit !== hit) lastHit.n = hit
-    lastHit = hit
-    return hit.r
-  }
-
-  // cn([a, b]) is cn(a, b) under clsx's flattening, so a lone array takes
-  // the arg path and its stable element identities hit the cache
-  const mergeSingleValue = (value: ClassValue): string =>
-    Array.isArray(value)
-      ? resolveArgs(value.slice(), false)
-      : mergeString(resolveValue(value, true))
-
-  // named params make the hot path three register reads instead of three
-  // `arguments` element loads; modules are strict, so params never alias
-  // `arguments` (still used for arity and the 4+ overflow copy). Arity 2
-  // rides the same branch as 3: an absent v2 is undefined, and a falsy pad
-  // behaves identically to '' through the probes and the resolve path.
-  return function (v0?: ClassValue, v1?: ClassValue, v2?: ClassValue): string {
-    const nArgs = arguments.length
-    if ((nArgs | 1) === 3) {
-      // arity 2 or 3
-      const lh = lastHit
-      if (lh !== null) {
-        // sequence prediction: does this call repeat what followed
-        // last time?
-        const pred = lh.n
-        if (pred !== null && match3(pred, v0, v1, v2)) {
-          lastHit = pred
-          return pred.r
-        }
-        // self-repeat: the same call site firing again immediately.
-        // Probed rather than stored as a self-link so an entry's
-        // learned successor is never clobbered — a doubled site
-        // (A, A, B) predicts all three calls: A→B via .n, the
-        // repeat via this probe.
-        if (lh !== pred && match3(lh, v0, v1, v2)) return lh.r
-      }
-      return resolveArgs([v0, v1, v2], true)
-    }
-    if (nArgs === 1)
-      return typeof v0 === "string" ? mergeString(v0) : mergeSingleValue(v0)
-    // 4+ arity: probe predictions in place over `arguments` (indexed
-    // reads only, so it never materializes) — a predicted render-loop
-    // call allocates nothing. Only a genuine miss copies into an array
-    // for the resolve path.
-    const lh = lastHit
-    if (lh !== null) {
-      const pred = lh.n
-      if (pred !== null) {
-        const pa = pred.a
-        let k = 0
-        let ok = true
-        for (let i = 0; i < nArgs; i++) {
-          const v = arguments[i]
-          if (!v) continue
-          if (v !== pa[k]) {
-            ok = false
-            break
-          }
-          k++
-        }
-        if (ok && k === pred.t) {
-          lastHit = pred
-          return pred.r
-        }
-      }
-      if (lh !== pred) {
-        const la = lh.a
-        let k = 0
-        let ok = true
-        for (let i = 0; i < nArgs; i++) {
-          const v = arguments[i]
-          if (!v) continue
-          if (v !== la[k]) {
-            ok = false
-            break
-          }
-          k++
-        }
-        if (ok && k === lh.t) return lh.r
-      }
-    }
-    const vals: ClassValue[] = []
-    for (let i = 0; i < nArgs; i++) vals.push(arguments[i])
-    return resolveArgs(vals, true)
-  } as CnFunction
-}
-
-/**
- * Create a `cn` function bound to compiled tables — the entry point for
- * project-compiled (`cn build`) tables:
- *
- * ```ts
- * import tables from "./cn-tables.js"
- * import { createCn } from "cn/engine"
- * export const cn = createCn(tables)
- * ```
- */
-export const createCn = (
-  tables: Tables,
-  validatorImpls?: ValidatorImpls,
-  options?: EngineOptions
-): CnFunction => {
-  const engine = createEngine(tables, validatorImpls, options)
-  return wrapClsx(engine.mergeString, engine)
-}

@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { extendTailwindMerge as baselineExtend } from "tailwind-merge";
 
-import { createCn } from "../../src/cn/internal/configuration";
+import { createConfiguredCn } from "../../src/cn/internal/factory";
 
 describe("custom configuration behavior parity", () => {
   test("prefix handling matches tailwind-merge", () => {
     const extension = { prefix: "tw" } as const;
-    const current = createCn(extension);
+    const current = createConfiguredCn(extension);
     const baseline = baselineExtend(extension);
     const cases = [
       ["tw:p-2", "tw:p-4"],
@@ -20,8 +20,8 @@ describe("custom configuration behavior parity", () => {
   });
 
   test("cache size changes storage policy, not observable merge semantics", () => {
-    const uncached = createCn({ cacheSize: 0 });
-    const cached = createCn({ cacheSize: 100 });
+    const uncached = createConfiguredCn({ cacheSize: 0 });
+    const cached = createConfiguredCn({ cacheSize: 100 });
     const cases = [
       ["p-2", "p-4"],
       ["text-sm", "text-lg", "font-bold"],
