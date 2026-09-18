@@ -9,9 +9,7 @@ on:
       - main
     paths:
       - "src/**"
-      - "tests/unit.test.ts"
-      - "tests/behavior.test.ts"
-      - "tests/property.test.ts"
+      - "tests/**/*.test.ts"
       - "tests/utility/**"
       - "tests/fixtures/**"
       - "package.json"
@@ -23,9 +21,7 @@ on:
   pull_request:
     paths:
       - "src/**"
-      - "tests/unit.test.ts"
-      - "tests/behavior.test.ts"
-      - "tests/property.test.ts"
+      - "tests/**/*.test.ts"
       - "tests/utility/**"
       - "tests/fixtures/**"
       - "package.json"
@@ -76,7 +72,7 @@ jobs:
 
       # Run executable source suites with the shared Bun coverage contract.
       - name: Run coverage suite
-        run: bun run test:coverage
+        run: bun run coverage
 
       # Fail early with a focused diagnostic if Bun did not emit LCOV output.
       - name: Verify LCOV report

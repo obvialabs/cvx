@@ -75,25 +75,9 @@ jobs:
       - name: Check source types
         run: bun run check
 
-      # Verify isolated implementation contracts and edge cases.
-      - name: Run unit tests
-        run: bun run test:unit
-
-      # Compare CVX behavior against the supported upstream semantics.
-      - name: Run behavior tests
-        run: bun run test:behavior
-
-      # Exercise deterministic generated inputs and cross-path invariants.
-      - name: Run property tests
-        run: bun run test:property
-
-      # Enforce the release-critical public package contract.
-      - name: Run guard tests
-        run: bun run test:guard
-
-      # Compile positive and negative public TypeScript API contracts.
-      - name: Run type tests
-        run: bun run test:type
+      # Run the complete checked-in CVX test suite through the shared package script.
+      - name: Run test suite
+        run: bun run test
 
       # Build both configured runtime formats and bundled declarations.
       - name: Build package

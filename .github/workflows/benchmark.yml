@@ -10,8 +10,9 @@ on:
     paths:
       - "src/**"
       - "tests/compare.bench.ts"
-      - "tests/performance.test.ts"
-      - "tests/utility/performance.ts"
+      - "tests/utility/benchmark.ts"
+      - "tests/utility/corpus.ts"
+      - "tests/utility/corpus-worker.ts"
       - "tests/fixtures/**"
       - "package.json"
       - "bun.lock"
@@ -86,12 +87,10 @@ jobs:
             free -h
           } | tee benchmark-environment.txt
 
-      # Enforce broad relative performance budgets before recording raw numbers.
-      - name: Run performance guards
-        run: bun run test:performance
-
       # Execute the checked-in CV/CX/CN comparison benchmark.
       - name: Run benchmark suite
+        env:
+          CVX_BENCHMARK_JSON: benchmark-results.json
         run: bun run bench | tee benchmark-results.txt
 
       # Publish the raw comparison directly on the workflow summary page.
@@ -114,5 +113,6 @@ jobs:
           path: |
             benchmark-environment.txt
             benchmark-results.txt
+            benchmark-results.json
           if-no-files-found: error
           retention-days: 30
