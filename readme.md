@@ -8,7 +8,7 @@
 
 `@obvia/cvx` combines typed class variants, general class-value composition, and Tailwind CSS conflict resolution behind one intentionally small public API.
 
-- **`cv` for variants** — typed variants, defaults, compound variants, composition, boolean/numeric values, and runtime class overrides.
+- **`cv` for variants** — typed variants, defaults, compounds, composition, boolean/numeric values, and runtime class overrides.
 - **`cn` for Tailwind classes** — accepts the same class-value grammar as `cx` and resolves conflicting Tailwind utilities.
 - **`cx` for composition** — fast recursive class-value normalization without Tailwind conflict resolution.
 - **`VariantProps` for inference** — extracts the public variant props of a `cv` component.
@@ -46,7 +46,7 @@ const button = cv({
             false: "cursor-pointer",
         },
     },
-    defaultVariants: {
+    defaults: {
         intent: "primary",
         size: "md",
         disabled: false,
@@ -209,7 +209,7 @@ const item = cv({
 })
 ```
 
-### Default variants
+### Defaults
 
 Defaults apply when a variant is omitted:
 
@@ -221,7 +221,7 @@ const text = cv({
             muted: "text-slate-500",
         },
     },
-    defaultVariants: {
+    defaults: {
         tone: "normal",
     },
 })
@@ -267,9 +267,9 @@ const depth = cv({
 depth({ level: 2 })
 ```
 
-### Compound variants
+### Compounds
 
-Compound variants emit classes only when every selector matches:
+Compounds emit classes only when every selector matches:
 
 ```ts
 const button = cv({
@@ -283,7 +283,7 @@ const button = cv({
             lg: "h-12",
         },
     },
-    compoundVariants: [
+    compounds: [
         {
             intent: "danger",
             size: "lg",
@@ -296,7 +296,7 @@ const button = cv({
 A selector can match several values:
 
 ```ts
-compoundVariants: [
+compounds: [
     {
         intent: ["primary", "danger"],
         size: ["sm", "lg"],
@@ -305,7 +305,7 @@ compoundVariants: [
 ]
 ```
 
-Both `class` and `className` are accepted in authored compound variants.
+Both `class` and `className` are accepted in authored compounds.
 
 ### Runtime class overrides
 
@@ -336,7 +336,7 @@ const typography = cv({
             bold: "font-bold",
         },
     },
-    defaultVariants: {
+    defaults: {
         weight: "normal",
     },
 })
@@ -348,7 +348,7 @@ const spacing = cv({
             lg: "px-5 py-3",
         },
     },
-    defaultVariants: {
+    defaults: {
         size: "sm",
     },
 })
@@ -356,7 +356,7 @@ const spacing = cv({
 const button = cv({
     composes: [typography, spacing],
     base: "inline-flex items-center",
-    defaultVariants: {
+    defaults: {
         weight: "bold",
         size: "lg",
     },

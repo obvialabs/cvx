@@ -4,7 +4,7 @@
 
 Initial public foundation for **@obvia/cvx**, a zero-runtime-dependency class toolkit that combines compiled variants, class-value composition, and Tailwind-aware conflict resolution.
 
-* `cv` with typed variants, defaults, compound variants, composition, boolean/numeric variants, runtime class overrides, and internal dense lookup compilation
+* `cv` with typed variants, defaults, compounds, composition, boolean/numeric variants, runtime class overrides, and internal dense lookup compilation
 * `cx` with recursive class-value composition across strings, numbers, bigints, arrays, dictionaries, and conditional values
 * `cn` with the same class-value grammar plus packed Tailwind conflict resolution
 * `VariantProps` for extracting the public variant contract of a `cv` component
