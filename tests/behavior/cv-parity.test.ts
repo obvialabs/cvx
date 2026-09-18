@@ -6,6 +6,7 @@ const betaReference = betaCva as (config: any) => any;
 const legacyReference = legacyCva as (base: any, options?: any) => any;
 
 import { cv } from "../../src/index";
+import { forEachCartesian } from "../helpers";
 
 const betaConfig = {
   base: ["button", { root: true, skip: false }],
@@ -68,30 +69,20 @@ describe("cva@1 beta behavior parity", () => {
     ] as const;
     const disabled = [undefined, true, false, null] as const;
     const levels = [undefined, 0, 1, 9, null] as const;
-    let count = 0;
+    const count = forEachCartesian(
+      [intents, sizes, disabled, levels, [false, true] as const] as const,
+      ([intent, size, disabledValue, level, override]) => {
+        const props: Record<string, unknown> = {
+          intent,
+          size,
+          disabled: disabledValue,
+          level,
+        };
+        if (override) props.className = ["extra", { x: true }];
 
-    for (const intent of intents) {
-      for (const size of sizes) {
-        for (const disabledValue of disabled) {
-          for (const level of levels) {
-            for (const override of [false, true] as const) {
-              const props: Record<string, unknown> = {
-                intent,
-                size,
-                disabled: disabledValue,
-                level,
-              };
-              if (override) {
-                props.className = ["extra", { x: true }];
-              }
-
-              expect(current(props as never)).toBe(upstream(props as never));
-              count++;
-            }
-          }
-        }
-      }
-    }
+        expect(current(props as never)).toBe(upstream(props as never));
+      },
+    );
 
     expect(count).toBe(1_440);
   });
@@ -137,14 +128,17 @@ describe("cva@1 beta behavior parity", () => {
       ],
     });
 
-    for (const toneValue of [undefined, "a", "b", "c"] as const) {
-      for (const sizeValue of [undefined, "s", "m", "l"] as const) {
-        for (const className of [undefined, "override"] as const) {
-          const props = { tone: toneValue, size: sizeValue, className };
-          expect(current(props)).toBe(upstream(props));
-        }
-      }
-    }
+    forEachCartesian(
+      [
+        [undefined, "a", "b", "c"],
+        [undefined, "s", "m", "l"],
+        [undefined, "override"],
+      ] as const,
+      ([tone, size, className]) => {
+        const props = { tone, size, className };
+        expect(current(props)).toBe(upstream(props));
+      },
+    );
   });
 
   test("matches nested composition semantics", () => {
@@ -206,13 +200,16 @@ describe("class-variance-authority 0.7 behavior parity", () => {
     // CVA 0.7 treats explicit `null` differently. Null/default semantics are
     // covered against the current cva beta above; this matrix stays on the
     // behavior genuinely shared by both generations.
-    for (const intent of [undefined, "primary", "danger"] as const) {
-      for (const size of [undefined, "sm", "lg"] as const) {
-        for (const disabled of [undefined, true, false] as const) {
-          const props = { intent, size, disabled };
-          expect(current(props as never)).toBe(upstream(props as never));
-        }
-      }
-    }
+    forEachCartesian(
+      [
+        [undefined, "primary", "danger"],
+        [undefined, "sm", "lg"],
+        [undefined, true, false],
+      ] as const,
+      ([intent, size, disabled]) => {
+        const props = { intent, size, disabled };
+        expect(current(props as never)).toBe(upstream(props as never));
+      },
+    );
   });
 });

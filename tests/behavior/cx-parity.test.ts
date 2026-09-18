@@ -4,6 +4,7 @@ import { cx as betaCx } from "cva";
 import { clsx } from "clsx";
 
 import { cx } from "../../src/index";
+import { expectCallParity } from "../helpers";
 
 const cases = [
   ["button", "active", "px-4"],
@@ -15,16 +16,24 @@ const cases = [
 
 describe("cx behavior parity", () => {
   test("matches clsx across supported class-value shapes", () => {
-    for (const values of cases) {
-      expect(cx(...values)).toBe(clsx(...values));
-    }
+    expectCallParity(
+      cases,
+      (...values) => cx(...values),
+      (...values) => clsx(...values),
+    );
   });
 
   test("matches both CVA class composers", () => {
-    for (const values of cases) {
-      expect(cx(...values)).toBe(legacyCx(...values));
-      expect(cx(...values)).toBe(betaCx(...values));
-    }
+    expectCallParity(
+      cases,
+      (...values) => cx(...values),
+      (...values) => legacyCx(...values),
+    );
+    expectCallParity(
+      cases,
+      (...values) => cx(...values),
+      (...values) => betaCx(...values),
+    );
   });
 
   test("keeps CVX bigint support as an intentional superset", () => {

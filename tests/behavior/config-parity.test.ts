@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { extendTailwindMerge as baselineExtend } from "tailwind-merge";
 
 import { createConfiguredCn } from "../../src/cn/internal/factory";
+import { expectCallParity, repeatCases } from "../helpers";
 
 describe("custom configuration behavior parity", () => {
   test("prefix handling matches tailwind-merge", () => {
@@ -14,9 +15,7 @@ describe("custom configuration behavior parity", () => {
       ["p-2", "p-4", "tw:p-2", "tw:p-4"],
     ] as const;
 
-    for (const values of cases) {
-      expect(current(...values)).toBe(baseline(...values));
-    }
+    expectCallParity(cases, current, baseline);
   });
 
   test("cache size changes storage policy, not observable merge semantics", () => {
@@ -29,10 +28,8 @@ describe("custom configuration behavior parity", () => {
       ["w-[10px]", "w-[30px]"],
     ] as const;
 
-    for (let pass = 0; pass < 20; pass++) {
-      for (const values of cases) {
-        expect(cached(...values)).toBe(uncached(...values));
-      }
-    }
+    repeatCases(20, () => {
+      expectCallParity(cases, cached, uncached);
+    });
   });
 });

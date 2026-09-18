@@ -7,6 +7,7 @@ import {
 
 import { cn } from "../../src/index";
 import { createConfiguredCn, createConfiguredMerge } from "../../src/cn/internal/factory";
+import { expectCallParity, forEachCartesian } from "../helpers";
 
 const utilities = [
   "p-0",
@@ -50,22 +51,20 @@ const utilities = [
 
 describe("cn differential parity", () => {
   test("matches clsx + tailwind-merge across a broad utility matrix", () => {
-    let comparisons = 0;
+    const indexes = utilities.map((_, index) => index);
+    const sampledIndexes = indexes.filter((index) => index % 4 === 0);
+    const comparisons = forEachCartesian(
+      [indexes, indexes, sampledIndexes] as const,
+      ([a, b, c]) => {
+        const inputs = [
+          utilities[a],
+          a % 2 === 0 && utilities[b],
+          [utilities[c], { "font-semibold": b % 2 === 0 }],
+        ] as const;
 
-    for (let a = 0; a < utilities.length; a++) {
-      for (let b = 0; b < utilities.length; b++) {
-        for (let c = 0; c < utilities.length; c += 4) {
-          const inputs = [
-            utilities[a],
-            a % 2 === 0 && utilities[b],
-            [utilities[c], { "font-semibold": b % 2 === 0 }],
-          ] as const;
-
-          expect(cn(...inputs)).toBe(baselineTwMerge(clsx(...inputs)));
-          comparisons++;
-        }
-      }
-    }
+        expect(cn(...inputs)).toBe(baselineTwMerge(clsx(...inputs)));
+      },
+    );
 
     expect(comparisons).toBeGreaterThan(10_000);
   });
@@ -82,9 +81,11 @@ describe("cn differential parity", () => {
       ["data-[state=open]:p-2", "data-[state=open]:p-4"],
     ] as const;
 
-    for (const values of cases) {
-      expect(cn(...values)).toBe(baselineTwMerge(clsx(...values)));
-    }
+    expectCallParity(
+      cases,
+      (...values) => cn(...values),
+      (...values) => baselineTwMerge(clsx(...values)),
+    );
   });
 
   test("custom cn config matches tailwind-merge extension semantics", () => {
@@ -107,9 +108,7 @@ describe("cn differential parity", () => {
       ["md:text-display", "md:text-tiny"],
     ] as const;
 
-    for (const values of cases) {
-      expect(current(...values)).toBe(baseline(...values));
-    }
+    expectCallParity(cases, current, baseline);
   });
 
   test("custom twMerge-compatible function matches tailwind-merge extension", () => {
@@ -129,8 +128,6 @@ describe("cn differential parity", () => {
       ["hover:shadow-soft", "hover:shadow-hard"],
     ] as const;
 
-    for (const values of cases) {
-      expect(current(...values)).toBe(baseline(...values));
-    }
+    expectCallParity(cases, current, baseline);
   });
 });
