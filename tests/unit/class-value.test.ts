@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { appendClassValue, cx } from "../../src/class-value";
+import { appendClassValue, cx } from "../../src/cx/compose";
 
 describe("cx / class-value", () => {
   test("composes strings, numbers, bigints, arrays and dictionaries", () => {

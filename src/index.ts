@@ -1,5 +1,5 @@
 export { cn, twJoin, twMerge } from "./cn";
-export { cx } from "./class-value";
+export { cx } from "./cx";
 export { configure, cv } from "./core";
 export type {
   AnyCX,

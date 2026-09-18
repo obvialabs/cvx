@@ -4,7 +4,7 @@
  * Modifications Copyright 2026 Selçuk Çukur / Obvia.
  */
 
-import { appendClassValue, cx } from "./class-value";
+import { appendClassValue, cx } from "./cx/compose";
 import { cn as defaultCn } from "./cn";
 
 import type {
