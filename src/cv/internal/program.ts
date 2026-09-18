@@ -133,7 +133,7 @@ export function createProgram(
   const localVariantKeys = localVariants ? Object.keys(localVariants) : [];
   const localVariantMaps = localVariantKeys.map((key) => copyVariantMap(localVariants![key]));
   const readKeys = localVariantKeys.slice();
-  const compounds = prepareCompounds(config.compoundVariants, readKeys);
+  const compounds = prepareCompounds(config.compounds, readKeys);
 
   for (let index = 0; index < children.length; index++) {
     for (const key of children[index].readKeys) {

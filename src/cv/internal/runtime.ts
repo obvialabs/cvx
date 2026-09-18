@@ -63,7 +63,7 @@ export function createCvRuntime(options: CreateCvRuntimeOptions = {}): CV {
       value: Object.freeze({
         ...definition,
         variants: Object.freeze({ ...program.mergedVariants }),
-        defaultVariants: program.defaults,
+        defaults: program.defaults,
       }),
     });
 

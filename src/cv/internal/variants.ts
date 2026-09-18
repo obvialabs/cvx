@@ -60,8 +60,8 @@ export function mergeVariantMetadata(
       }
     }
 
-    if (source.defaultVariants) {
-      defaults = { ...defaults, ...source.defaultVariants };
+    if (source.defaults) {
+      defaults = { ...defaults, ...source.defaults };
     }
   };
 

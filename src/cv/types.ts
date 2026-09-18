@@ -77,7 +77,7 @@ type CompositionVariants<Components extends readonly unknown[]> =
   UnionToIntersection<ComponentVariants<Components[number]>>
 
 type ComponentDefaults<Component> = Component extends {
-  config: { defaultVariants?: infer Defaults }
+  config: { defaults?: infer Defaults }
 }
   ? Defaults extends undefined
     ? {}
@@ -99,9 +99,28 @@ type EffectiveVariants<
     : LocalVariants & CompositionVariants<List>
   : LocalVariants & CompositionVariants<CompositionTuple<Single, List>>
 
-type LocalDefaults<Config> = Config extends { defaultVariants?: infer Defaults }
+type LocalDefaults<Config> = Config extends { defaults?: infer Defaults }
   ? Defaults
   : {}
+
+type CVConfigFields<
+  Variants,
+  Single extends CVComponentShape | undefined,
+  List extends readonly CVComponentShape[],
+  T extends ClassValue,
+  CombinedVariants = EffectiveVariants<Variants, Single, List>,
+> = {
+  base?: T
+  variants?: Variants extends Record<string, Record<string, T>>
+    ? Variants & { __proto__?: never }
+    : never
+  composes?: Single | readonly [...List]
+} & ([keyof CombinedVariants] extends [never]
+    ? { defaults?: never; compounds?: never }
+    : {
+        defaults?: VariantSelection<CombinedVariants>
+        compounds?: readonly CompoundVariant<CombinedVariants, T>[]
+      })
 
 /** Authoring shape accepted by the variant factory. */
 export type CVConfig<
@@ -110,19 +129,10 @@ export type CVConfig<
   Single extends CVComponentShape | undefined = undefined,
   List extends readonly CVComponentShape[] = [],
   T extends ClassValue = ClassValue,
-  CombinedVariants = EffectiveVariants<Variants, Single, List>,
-> = Config & {
-  base?: T
-  variants?: Variants extends Record<string, Record<string, T>>
-    ? Variants & { __proto__?: never }
-    : never
-  composes?: Single | readonly [...List]
-} & ([keyof CombinedVariants] extends [never]
-    ? { defaultVariants?: never; compoundVariants?: never }
-    : {
-        defaultVariants?: VariantSelection<CombinedVariants>
-        compoundVariants?: readonly CompoundVariant<CombinedVariants, T>[]
-      })
+  Fields = CVConfigFields<Variants, Single, List, T>,
+> = Config & Fields & {
+  [Key in Exclude<keyof Config, keyof Fields>]?: never
+}
 
 /** Internal callable factory contract implemented by `createCvRuntime`. */
 export interface CV<T extends ClassValue = ClassValue> {
@@ -134,9 +144,9 @@ export interface CV<T extends ClassValue = ClassValue> {
   >(
     config: CVConfig<Config, Variants, Single, List, T>,
   ): CVComponent<
-    Omit<Config, "defaultVariants"> & {
+    Omit<Config, "defaults"> & {
       variants: EffectiveVariants<Variants, Single, List>
-      defaultVariants: Omit<
+      defaults: Omit<
         CompositionDefaults<CompositionTuple<Single, List>>,
         keyof LocalDefaults<Config>
       > &
