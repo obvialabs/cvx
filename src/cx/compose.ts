@@ -1,4 +1,4 @@
-import type { ClassValue, CX } from "../types";
+import type { ClassComposer, ClassValue } from "./types";
 
 const hasOwn = Object.prototype.hasOwnProperty;
 
@@ -35,7 +35,7 @@ export function appendClassValue(output: string, value: ClassValue): string {
   return output;
 }
 
-export const cx: CX = (...inputs): string => {
+export const cx: ClassComposer = (...inputs): string => {
   let output = "";
   for (let index = 0; index < inputs.length; index++) {
     output = appendClassValue(output, inputs[index]);
