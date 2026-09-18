@@ -685,3 +685,65 @@ Available package entry points are:
 
 The package publishes both ESM and CommonJS JavaScript builds together with generated TypeScript declarations and source maps. The package manager and verification workflow are Bun-first, while the distributed JavaScript entry points are not restricted to Bun-only consumption.
 
+## Performance
+
+The benchmark suite is built to produce comparable workload-level numbers rather than one blended marketing estimate. It uses Bun-based microbenchmarks and keeps class composition, defaults, explicit variants, rotating variants, compound-heavy definitions, stable Tailwind merging, and rotating Tailwind merging as separate scenarios.
+
+The latest recorded local benchmark run measured:
+
+| Workload | @obvia/cv | Equivalent baseline | Relative |
+| --- | ---: | ---: | ---: |
+| Class composition | **44.32 ns/op** | `class-variance-authority@0.7.1`: 68.89 ns/op | **1.55x faster** |
+| Class composition | **44.32 ns/op** | `cva@1 beta`: 103.79 ns/op | **2.34x faster** |
+| Defaults + compounds | **39.39 ns/op** | `class-variance-authority@0.7.1`: 978.98 ns/op | **24.85x faster** |
+| Defaults + compounds | **39.39 ns/op** | `cva@1 beta`: 169.75 ns/op | **4.31x faster** |
+| Explicit variants | **28.54 ns/op** | `class-variance-authority@0.7.1`: 1420.33 ns/op | **49.76x faster** |
+| Explicit variants | **28.54 ns/op** | `cva@1 beta`: 267.36 ns/op | **9.37x faster** |
+| Rotating variants | **47.34 ns/op** | `class-variance-authority@0.7.1`: 1234.81 ns/op | **26.08x faster** |
+| Rotating variants | **47.34 ns/op** | `cva@1 beta`: 251.33 ns/op | **5.31x faster** |
+| Compound-heavy | **27.84 ns/op** | `class-variance-authority@0.7.1`: 12875.12 ns/op | **462.54x faster** |
+| Compound-heavy | **27.84 ns/op** | `cva@1 beta`: 1097.36 ns/op | **39.42x faster** |
+| Tailwind merge: stable | **37.76 ns/op** | `clsx + tailwind-merge`: 166.18 ns/op | **4.40x faster** |
+| Tailwind merge: rotating | **9.86 ns/op** | `clsx + tailwind-merge`: 137.59 ns/op | **13.96x faster** |
+
+Variant comparisons use equivalent feature scenarios. `cn` is compared against `clsx + tailwind-merge` rather than a concatenation-only helper, and stable calls remain separate from rotating calls so cache-hot behavior is not presented as universal runtime performance.
+
+The repository also maintains dedicated behavior, unit, property, guard, type, coverage, and deterministic performance regression suites. Run the full correctness suite with `bun run test`, include performance guards with `bun run test:all`, or execute the raw comparison benchmark with `bun run bench`.
+
+> Performance varies by Bun version, CPU, operating system, workload shape, cache state, and authored configuration. These are measured reference results, not duration or speedup guarantees. Run `bun run bench` to reproduce the comparison on your own machine or CI runner.
+
+## Contributing
+
+The **CVX** project welcomes contributions from the community.
+
+Whether you want to report a bug, suggest a new feature, improve the
+documentation, strengthen tests, optimize a hot path, or submit code changes, your contributions are greatly appreciated.
+
+You can find detailed information about the contribution process by visiting the link below.
+
+- **[Contributing Guide](contributing.md)**
+
+## Security
+
+The **CVX** project takes security vulnerabilities seriously.
+
+If you believe you have discovered a security vulnerability, please report it
+responsibly by contacting **Selçuk Çukur** at **<hello@selcukcukur.me>**.
+
+Please do not disclose security vulnerabilities publicly until they have been
+reviewed and addressed.
+
+You can find detailed information about the security policy by visiting the link below.
+
+- **[Security Policy](security.md)**
+
+## License
+
+The **CVX** project is published as open source software under the **[MIT License](license.md)**,
+which is one of the most widely used open source licenses.
+
+The project also includes code and behavior derived from or informed by third-party open source projects. Attribution and license details are available in the included notice files.
+
+- **[MIT License](license.md)**
+- **[Notice](NOTICE.md)**
+- **[Third-Party Notices](THIRD_PARTY_NOTICES.md)**
