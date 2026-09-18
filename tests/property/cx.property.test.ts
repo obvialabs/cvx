@@ -3,84 +3,79 @@ import { clsx } from "clsx";
 
 import { cx } from "../../src/index";
 import type { ClassValue } from "../../src/cx/types";
-import { createRandom, pick, type Random } from "../helpers/random";
-
-const words = ["alpha", "beta", "gamma", "delta", "px-2", "text-sm"] as const;
-
-function generateValue(random: Random, depth = 0): ClassValue {
-  const leaf = () => {
-    switch (random.int(7)) {
-      case 0:
-        return pick(random, words);
-      case 1:
-        return random.int(6);
-      case 2:
-        return random.bool();
-      case 3:
-        return null;
-      case 4:
-        return undefined;
-      case 5:
-        return { [pick(random, words)]: random.bool() };
-      default:
-        return "";
-    }
-  };
-
-  if (depth >= 3 || random.int(4) !== 0) return leaf();
-  return Array.from({ length: random.int(5) }, () =>
-    generateValue(random, depth + 1),
-  );
-}
+import {
+  checkGeneratedCases,
+  classWords,
+  generateClassValue,
+  pick,
+} from "../helpers";
 
 describe("cx properties", () => {
   test("matches clsx for thousands of generated supported inputs", () => {
-    const random = createRandom(0xc0ffee);
+    const comparisons = checkGeneratedCases({
+      seed: 0xc0ffee,
+      cases: 5_000,
+      generate: (random) =>
+        Array.from({ length: random.int(8) }, () => generateClassValue(random)),
+      check: (inputs) => {
+        expect(cx(...inputs)).toBe(clsx(...(inputs as Parameters<typeof clsx>)));
+      },
+    });
 
-    for (let caseIndex = 0; caseIndex < 5_000; caseIndex++) {
-      const inputs = Array.from({ length: random.int(8) }, () =>
-        generateValue(random),
-      );
-
-      expect(cx(...inputs)).toBe(clsx(...(inputs as Parameters<typeof clsx>)));
-    }
+    expect(comparisons).toBe(5_000);
   });
 
   test("variadic and nested-array forms are equivalent", () => {
-    const random = createRandom(0xabc123);
-
-    for (let caseIndex = 0; caseIndex < 3_000; caseIndex++) {
-      const inputs = Array.from({ length: random.int(10) }, () =>
-        generateValue(random),
-      );
-
-      expect(cx(...inputs)).toBe(cx(inputs));
-    }
+    checkGeneratedCases({
+      seed: 0xabc123,
+      cases: 3_000,
+      generate: (random) =>
+        Array.from({ length: random.int(10) }, () => generateClassValue(random)),
+      check: (inputs) => {
+        expect(cx(...inputs)).toBe(cx(inputs));
+      },
+    });
   });
 
   test("inserting falsy values never changes output", () => {
-    const random = createRandom(0x515151);
-
-    for (let caseIndex = 0; caseIndex < 2_000; caseIndex++) {
-      const left = pick(random, words);
-      const right = pick(random, words);
-      const expected = cx(left, right);
-
-      expect(cx(left, false, null, undefined, "", 0, 0n, right)).toBe(
-        expected,
-      );
-    }
+    checkGeneratedCases({
+      seed: 0x515151,
+      cases: 2_000,
+      generate: (random) => [pick(random, classWords), pick(random, classWords)] as const,
+      check: ([left, right]) => {
+        const expected = cx(left, right);
+        expect(cx(left, false, null, undefined, "", 0, 0n, right)).toBe(expected);
+      },
+    });
   });
 
   test("repeated evaluation is deterministic", () => {
-    const random = createRandom(0x777777);
+    checkGeneratedCases({
+      seed: 0x777777,
+      cases: 1_000,
+      generate: (random) =>
+        Array.from({ length: random.int(8) }, () => generateClassValue(random)),
+      check: (inputs) => {
+        const first = cx(...inputs);
+        expect(cx(...inputs)).toBe(first);
+        expect(cx(...inputs)).toBe(first);
+      },
+    });
+  });
 
-    for (let caseIndex = 0; caseIndex < 1_000; caseIndex++) {
-      const inputs = Array.from({ length: 6 }, () => generateValue(random));
-      const expected = cx(...inputs);
-
-      expect(cx(...inputs)).toBe(expected);
-      expect(cx(...inputs)).toBe(expected);
-    }
+  test("top-level object ordering is preserved", () => {
+    checkGeneratedCases({
+      seed: 0x818181,
+      cases: 1_000,
+      generate: (random) => {
+        const keys = Array.from({ length: 1 + random.int(5) }, () => pick(random, classWords));
+        const object: Record<string, boolean> = {};
+        for (const key of keys) object[key] = true;
+        return object;
+      },
+      check: (object) => {
+        expect(cx(object)).toBe(clsx(object));
+      },
+    });
   });
 });

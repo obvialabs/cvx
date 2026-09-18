@@ -1,7 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
 import { createCvRuntime } from "../../src/cv/internal/runtime";
-import { createRandom, pick } from "../helpers/random";
+import {
+  checkGeneratedCases,
+  forEachCartesian,
+  pick,
+  repeatCases,
+} from "../helpers";
 
 const config = {
   base: "root",
@@ -40,19 +45,21 @@ describe("cv properties", () => {
   test("dense compilation is observationally equivalent to the uncached path", () => {
     const compiled = createCvRuntime({ compileLimit: 1_024 })(config);
     const uncached = createCvRuntime({ compileLimit: 0 })(config);
-    const random = createRandom(0x13572468);
 
-    for (let caseIndex = 0; caseIndex < 20_000; caseIndex++) {
-      const props = {
+    checkGeneratedCases({
+      seed: 0x13572468,
+      cases: 20_000,
+      generate: (random) => ({
         intent: pick(random, intents) as never,
         size: pick(random, sizes) as never,
         disabled: pick(random, disabled) as never,
         level: pick(random, levels) as never,
         className: random.int(4) === 0 ? `extra-${random.int(8)}` : undefined,
-      };
-
-      expect(compiled(props)).toBe(uncached(props));
-    }
+      }),
+      check: (props) => {
+        expect(compiled(props)).toBe(uncached(props));
+      },
+    });
   });
 
   test("repeated cache hits never change output", () => {
@@ -60,29 +67,33 @@ describe("cv properties", () => {
     const props = { intent: "danger", size: "lg", disabled: false, level: 2 } as const;
     const expected = component(props);
 
-    for (let index = 0; index < 20_000; index++) {
+    repeatCases(20_000, () => {
       expect(component(props)).toBe(expected);
-    }
+    });
   });
 
   test("class overrides affect only the suffix, not variant resolution", () => {
     const component = createCvRuntime({ compileLimit: 1_024 })(config);
-    const random = createRandom(0x24681357);
 
-    for (let caseIndex = 0; caseIndex < 5_000; caseIndex++) {
-      const props = {
-        intent: pick(random, intents) as never,
-        size: pick(random, sizes) as never,
-        disabled: pick(random, disabled) as never,
-        level: pick(random, levels) as never,
-      };
-      const core = component(props);
-      const extra = `extra-${caseIndex % 7}`;
-
-      expect(component({ ...props, className: extra })).toBe(
-        core ? `${core} ${extra}` : extra,
-      );
-    }
+    checkGeneratedCases({
+      seed: 0x24681357,
+      cases: 5_000,
+      generate: (random, index) => ({
+        props: {
+          intent: pick(random, intents) as never,
+          size: pick(random, sizes) as never,
+          disabled: pick(random, disabled) as never,
+          level: pick(random, levels) as never,
+        },
+        extra: `extra-${index % 7}`,
+      }),
+      check: ({ props, extra }) => {
+        const core = component(props);
+        expect(component({ ...props, className: extra })).toBe(
+          core ? `${core} ${extra}` : extra,
+        );
+      },
+    });
   });
 
   test("nested composition stays equivalent between compiled and uncached engines", () => {
@@ -110,15 +121,20 @@ describe("cv properties", () => {
     const compiled = make(512);
     const uncached = make(0);
 
-    for (const tone of [undefined, "calm", "loud"] as const) {
-      for (const size of [undefined, "sm", "lg"] as const) {
+    const comparisons = forEachCartesian(
+      [
+        [undefined, "calm", "loud"],
+        [undefined, "sm", "lg"],
+      ] as const,
+      ([tone, size]) => {
         expect(compiled({ tone, size })).toBe(uncached({ tone, size }));
-      }
-    }
+      },
+    );
+
+    expect(comparisons).toBe(9);
   });
 
   test("many independently created components do not share mutable result state", () => {
-    const random = createRandom(0x90909090);
     const components = Array.from({ length: 64 }, (_, index) =>
       createCvRuntime({ compileLimit: index % 2 === 0 ? 512 : 0 })({
         base: `component-${index}`,
@@ -127,12 +143,18 @@ describe("cv properties", () => {
       }),
     );
 
-    for (let caseIndex = 0; caseIndex < 5_000; caseIndex++) {
-      const index = random.int(components.length);
-      const tone = random.bool() ? "a" : "b";
-      expect(components[index]!({ tone })).toBe(
-        `component-${index} ${tone}-${index}`,
-      );
-    }
+    checkGeneratedCases({
+      seed: 0x90909090,
+      cases: 5_000,
+      generate: (random) => ({
+        index: random.int(components.length),
+        tone: random.bool() ? ("a" as const) : ("b" as const),
+      }),
+      check: ({ index, tone }) => {
+        expect(components[index]!({ tone })).toBe(
+          `component-${index} ${tone}-${index}`,
+        );
+      },
+    });
   });
 });
