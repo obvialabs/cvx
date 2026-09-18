@@ -484,53 +484,58 @@ const { cn, cv, cx } = require("@obvia/cvx")
 
 ## Performance
 
-The benchmark suite compares equivalent workloads instead of presenting one synthetic headline number. It includes class composition, defaults and compounds, explicit and rotating variants, compound-heavy definitions, and Tailwind conflict merging.
+CVX benchmarks equivalent public workloads instead of deriving one speed claim from a single hot loop. The checked-in suite covers:
 
-A recent Bun run produced:
+- flat and nested `cx` composition against `clsx`;
+- hot `cv` defaults, explicit variants, and rotating variant selections;
+- compound scaling at 4, 16, and 64 rules;
+- component creation and creation + first call, where preparation cost cannot be hidden by hot reuse;
+- `cn` stable cache hits, a 32-entry working set, and a 32K cache-hostile working set;
+- arbitrary values with stacked modifiers;
+- an end-to-end `cv + cn` application path.
 
-| Workload | @obvia/cvx | Baseline | Relative |
-| --- | ---: | ---: | ---: |
-| class composition | **44.32 ns/op** | class-variance-authority 0.7.1: 68.89 ns/op | **1.55x faster** |
-| class composition | **44.32 ns/op** | cva 1.0 beta: 103.79 ns/op | **2.34x faster** |
-| defaults + compounds | **39.39 ns/op** | class-variance-authority 0.7.1: 978.98 ns/op | **24.85x faster** |
-| defaults + compounds | **39.39 ns/op** | cva 1.0 beta: 169.75 ns/op | **4.31x faster** |
-| explicit variants | **28.54 ns/op** | class-variance-authority 0.7.1: 1420.33 ns/op | **49.76x faster** |
-| explicit variants | **28.54 ns/op** | cva 1.0 beta: 267.36 ns/op | **9.37x faster** |
-| rotating variants | **47.34 ns/op** | class-variance-authority 0.7.1: 1234.81 ns/op | **26.08x faster** |
-| rotating variants | **47.34 ns/op** | cva 1.0 beta: 251.33 ns/op | **5.31x faster** |
-| compound-heavy | **27.84 ns/op** | class-variance-authority 0.7.1: 12875.12 ns/op | **462.54x faster** |
-| compound-heavy | **27.84 ns/op** | cva 1.0 beta: 1097.36 ns/op | **39.42x faster** |
-| Tailwind merge: stable | **37.76 ns/op** | clsx + tailwind-merge: 166.18 ns/op | **4.40x faster** |
-| Tailwind merge: rotating | **9.86 ns/op** | clsx + tailwind-merge: 137.59 ns/op | **13.96x faster** |
+Every workload is warmed first, calibrated to a target sample duration, then measured with interleaved candidate ordering. The report includes median (`p50`) and `p95` nanoseconds per operation, throughput, relative standard deviation, and the workload-specific ratio versus CVX. CI also stores the raw sample arrays and runner metadata as benchmark artifacts.
 
-Performance depends on Bun/runtime version, CPU, workload shape, cache state, and class/variant distributions. These values are reference measurements, not duration guarantees.
+Cache-sensitive workloads are labelled explicitly. A cache-hit result is not presented as an uncached parser result, and the benchmark does not calculate an aggregate speedup across unrelated workloads.
 
-Run the same checked-in comparison locally:
+Run the same checked-in suite locally:
 
 ```bash
 bun run bench
 ```
 
-Performance regression tests are separate from the comparison benchmark:
-
-```bash
-bun run test:performance
-```
+The GitHub benchmark workflow records the exact Bun version, runner architecture, CPU information, relevant dependency versions, text output, and machine-readable JSON for each run. Use those measured artifacts when quoting performance numbers rather than copying an old benchmark table into documentation.
 
 ## Contributing
 
-The **@obvia/cvx** project welcomes focused contributions that preserve the small public API, behavioral parity, type safety, and measured performance characteristics.
+The **@obvia/cvx** project welcomes contributions from the community.
+
+Whether you want to report a bug, suggest a new feature, improve the
+documentation, or submit code changes, your contributions are greatly appreciated.
+
+You can find detailed information about the contribution process by visiting the link below.
 
 - **[Contributing Guide](contributing.md)**
 
 ## Security
 
-If you believe you have discovered a security vulnerability, report it privately before public disclosure.
+The **@obvia/cvx** project takes security vulnerabilities seriously.
+
+If you believe you have discovered a security vulnerability, please report it
+responsibly by contacting **Selçuk Çukur** at **<hello@selcukcukur.me>**.
+
+Please do not disclose security vulnerabilities publicly until they have been
+reviewed and addressed.
+
+You can find detailed information about the security policy by visiting the link below.
 
 - **[Security Policy](security.md)**
 
 ## License
 
-The project is published under the **[MIT License](license.md)**.
+The **@obvia/cvx** project is published as open source software under the **[MIT License](license.md)**,
+which is one of the most widely used open source licenses.
+
+You can find detailed information about the license terms by visiting the link below.
 
 - **[MIT License](license.md)**
