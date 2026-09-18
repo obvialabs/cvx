@@ -1,0 +1,98 @@
+# Workflow name
+name: coverage
+
+# Workflow conditions
+on:
+  # Measure executable CVX source coverage on the default branch.
+  push:
+    branches:
+      - master
+    paths:
+      - "src/**"
+      - "tests/unit/**"
+      - "tests/behavior/**"
+      - "tests/property/**"
+      - "package.json"
+      - "bun.lock"
+      - "bunfig.toml"
+      - ".github/workflows/coverage.yml"
+
+  # Keep pull requests subject to the same coverage contract.
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/unit/**"
+      - "tests/behavior/**"
+      - "tests/property/**"
+      - "package.json"
+      - "bun.lock"
+      - "bunfig.toml"
+      - ".github/workflows/coverage.yml"
+
+  # Allow manual execution from the GitHub Actions interface.
+  workflow_dispatch:
+
+# Grant only the repository permission required by this workflow.
+permissions:
+  contents: read
+
+# Cancel an older run when a newer commit targets the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Workflow jobs
+jobs:
+  # Job (CVX)
+  cvx:
+    # Job name shown in GitHub checks: "coverage / cvx".
+    name: cvx
+
+    # Use a pinned GitHub-hosted Linux image for reproducible coverage results.
+    runs-on: ubuntu-24.04
+
+    # Prevent a stalled coverage process from consuming CI indefinitely.
+    timeout-minutes: 15
+
+    # Job steps
+    steps:
+      # Checkout the exact commit that triggered this workflow.
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # Install the Bun version declared by package.json.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      # Install exactly the dependency graph committed in bun.lock.
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Run executable source suites with the shared Bun coverage contract.
+      - name: Run coverage suite
+        run: bun run test:coverage
+
+      # Fail early with a focused diagnostic if Bun did not emit LCOV output.
+      - name: Verify LCOV report
+        shell: bash
+        run: |
+          if [[ ! -s coverage/lcov.info ]]; then
+            echo "::error::Bun did not emit coverage/lcov.info"
+            echo "Coverage-related files found in the workspace:"
+            find . -maxdepth 4 -type f \( -name 'lcov.info' -o -path './coverage/*' \) -print || true
+            exit 1
+          fi
+
+          echo "LCOV size: $(wc -c < coverage/lcov.info) bytes"
+          echo "Covered source files: $(grep -c '^SF:' coverage/lcov.info)"
+
+      # Preserve the machine-readable LCOV report for external inspection.
+      - name: Upload LCOV report
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-lcov-${{ github.run_id }}
+          path: coverage/lcov.info
+          if-no-files-found: error
+          retention-days: 14
