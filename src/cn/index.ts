@@ -11,7 +11,7 @@ import {
   wrapClsx,
 } from "./internal/engine.js";
 
-import type { CX } from "../types.js";
+import type { ClassComposer } from "../cx/types.js";
 
 const engine = /* @__PURE__ */ createEngine(tables);
 
@@ -21,12 +21,8 @@ const engine = /* @__PURE__ */ createEngine(tables);
  * Unlike `cx`, `cn` is conflict-aware: later utilities in the same Tailwind
  * conflict group win while non-conflicting utilities are preserved.
  */
-export const cn: CX = /* @__PURE__ */ wrapClsx(
+export const cn: ClassComposer = /* @__PURE__ */ wrapClsx(
   engine.mergeString,
   engine,
-) as CX;
+) as ClassComposer;
 
-/** Tailwind-merge-compatible string/nested-array merger. */
-export const twMerge = engine.merge;
-
-export { twJoin };
