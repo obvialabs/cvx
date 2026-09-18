@@ -531,6 +531,6 @@ If you believe you have discovered a security vulnerability, report it privately
 
 ## License
 
-The project is published under the **[MIT License](license.md)**. Portions derived from upstream open-source implementations retain their required attribution in the repository notices.
+The project is published under the **[MIT License](license.md)**.
 
 - **[MIT License](license.md)**
