@@ -1,5 +1,5 @@
 import { cx } from "../../cx"
-import type { ClassValue } from "../../cx/types"
+import type { ClassInput } from "../../cx/types"
 import type { CV, CVComponentShape, CVConfig } from "../types"
 import type { VariantRuntime } from "./model"
 import { createProgram, registerProgram } from "./program"
@@ -80,8 +80,8 @@ export function createCvRuntime(
               }
 
               // Read supported runtime class overrides from the input object
-              const classValue = input.class as ClassValue
-              const classNameValue = input.className as ClassValue
+              const classValue = input.class as ClassInput<any>
+              const classNameValue = input.className as ClassInput<any>
 
               // Return static output directly when no class override was provided
               if (

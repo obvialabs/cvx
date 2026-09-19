@@ -1,5 +1,5 @@
 import { appendClassValue, cx } from "../../cx/compose"
-import type { ClassValue } from "../../cx/types"
+import type { ClassInput, ClassResolver, ClassValue } from "../../cx/types"
 import type { CVComponentShape, VariantShape } from "../types"
 import { matchesCompoundSelector, prepareCompounds } from "./compounds"
 import { buildDenseTable, resolveDenseIndex } from "./dense"
@@ -119,7 +119,7 @@ function renderUncached(
 
   // Render composed CV programs using the same runtime props and inherited defaults
   for (let index = 0; index < program.children.length; index++) {
-    const rendered = program.children[index].render(props, defaults, false)
+    const rendered = program.children[index].render(props, defaults, false) as string
 
     // Append child output only when the child produced classes
     if (rendered) {
@@ -144,7 +144,7 @@ function renderUncached(
 
     // Execute each foreign component using an isolated props object
     for (let index = 0; index < program.foreignChildren.length; index++) {
-      const rendered = program.foreignChildren[index]({ ...forwarded })
+      const rendered = program.foreignChildren[index]({ ...forwarded }) as unknown as string
 
       // Append foreign output only when the component produced classes
       if (rendered) {
@@ -339,7 +339,7 @@ export function createProgram(
       props: Record<string, unknown>,
       inheritedDefaults = program.defaults,
       includeClassProps = true,
-  ): string => {
+  ): string | ClassResolver<any> => {
     let core: string
 
     // Reuse static output when the program has no runtime-dependent state
@@ -404,8 +404,8 @@ export function createProgram(
     }
 
     // Read supported runtime class overrides from the component props
-    const classValue = props.class as ClassValue
-    const classNameValue = props.className as ClassValue
+    const classValue = props.class as ClassInput<any>
+    const classNameValue = props.className as ClassInput<any>
 
     // Return the prepared output directly when no runtime override was provided
     if (

@@ -94,7 +94,7 @@ type HasRequiredResolver<Inputs extends readonly unknown[]> =
  *
  * @internal
  */
-type ClassComposerResult<Inputs extends readonly unknown[]> =
+export type ClassComposerResult<Inputs extends readonly unknown[]> =
   [ResolverMember<Inputs[number]>] extends [never]
     ? string
     : HasRequiredResolver<Inputs> extends true

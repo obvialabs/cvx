@@ -1,4 +1,9 @@
-import type { ClassValue } from "../cx/types"
+import type {
+    ClassComposerResult,
+    ClassInput,
+    ClassResolver,
+    ClassValue,
+} from "../cx/types"
 
 /**
  * Map variant names to the values they accept and the classes those values emit
@@ -76,10 +81,10 @@ export type VariantSelection<Variants> = {
 }
 
 /**
- * Runtime class override accepted by every resolver created with `cv`
+ * Static class property shape used by authored CV rules
  *
  * **Templates**
- * - `T` – Class value type accepted by the resolver
+ * - `T` – Static class value type accepted by the authored rule
  */
 export type ClassProp<T extends ClassValue = ClassValue> =
     | {
@@ -89,6 +94,28 @@ export type ClassProp<T extends ClassValue = ClassValue> =
     | {
     class?: never
     className?: T
+}
+
+/**
+ * Runtime class override accepted by a resolver created with `cv`
+ *
+ * Unlike authored base, variant, and compound values, runtime overrides may
+ * be state-aware callbacks so headless component libraries can pass their
+ * native `className(state)` contract through `cv` without adaptation.
+ *
+ * **Templates**
+ * - `Input` – Static class value or state-aware class resolver
+ */
+export type RuntimeClassProp<
+    Input extends ClassInput<any> = ClassValue,
+> =
+    | {
+    class?: Input
+    className?: never
+}
+    | {
+    class?: never
+    className?: Input
 }
 
 /**
@@ -122,24 +149,24 @@ export type CompoundVariant<
  * **Templates**
  * - `Config` – Prepared configuration metadata retained by the resolver
  * - `Variants` – Effective variant map accepted by the resolver
- * - `T` – Class value type accepted by runtime class overrides
+ * - `T` – Static class value type accepted by authored base, variant, and compound definitions
  *
  * **Parameters**
  * - `props` – Variant selections and an optional runtime `class` or `className` override
  *
  * **Returns**
- * - `string` – Normalized class string produced for the resolved variant state
+ * - `string | ClassResolver` – Immediate class string for static overrides, or a state-aware resolver when a runtime override requires state
  */
 export interface CVComponent<
     Config,
     Variants,
     T extends ClassValue = ClassValue,
 > {
-    (
+    <const Input extends ClassInput<any> = T>(
         props?: Variants extends VariantShape
-            ? VariantSelection<Variants> & ClassProp<T>
-            : ClassProp<T>,
-    ): string
+            ? VariantSelection<Variants> & RuntimeClassProp<Input>
+            : RuntimeClassProp<Input>,
+    ): ClassComposerResult<[Input]>
 
     /**
      * Prepared configuration metadata retained for composition and type inference
@@ -153,7 +180,10 @@ export interface CVComponent<
 /**
  * Structural resolver contract used by the internal composition runtime
  */
-export type CVComponentShape = CVComponent<any, any, any>
+export interface CVComponentShape {
+    (props?: any): string | ClassResolver<any>
+    readonly config: any
+}
 
 /**
  * Normalize single and tuple composition forms into one tuple representation
@@ -359,7 +389,7 @@ export type CVConfig<
  * Callable factory contract implemented by the internal CV runtime
  *
  * **Templates**
- * - `T` – Class value type accepted by created resolvers
+ * - `T` – Static class value type accepted by authored definitions
  *
  * **Parameters**
  * - `config` – Authored CV configuration containing base classes, variants, defaults, compounds, and optional composition
