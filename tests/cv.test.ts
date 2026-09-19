@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test"
 
 import { cv } from "../src"
+import {
+  matchesCompoundSelector,
+  prepareCompounds,
+} from "../src/cv/internal/compounds"
 import { createCvRuntime } from "../src/cv/internal/runtime"
 
 describe("cv", () => {
@@ -182,4 +186,126 @@ describe("cv", () => {
       }
     }
   })
+
+  test("static components preserve direct output and runtime class overrides", () => {
+    const component = createCvRuntime()({
+      base: ["static", { ready: true, skipped: false }],
+    })
+
+    expect(component()).toBe("static ready")
+    expect((component as any)(null)).toBe("static ready")
+    expect((component as any)("invalid")).toBe("static ready")
+    expect(component({})).toBe("static ready")
+    expect(component({ class: "from-class" })).toBe("static ready from-class")
+    expect(
+      component({
+        className: ["from-class-name", { active: true }],
+      }),
+    ).toBe("static ready from-class-name active")
+  })
+
+  test("isolated runtimes normalize negative compile limits and invalid runtime props", () => {
+    const component = createCvRuntime({ compileLimit: -10 })({
+      variants: {
+        tone: {
+          soft: "soft",
+          hard: "hard",
+        },
+      },
+      defaults: {
+        tone: "soft",
+      },
+    })
+
+    expect((component as any)(null)).toBe("soft")
+    expect((component as any)("invalid")).toBe("soft")
+    expect(component({ tone: "hard" })).toBe("hard")
+  })
+
+  test("compound preparation adapts selector storage without changing matching behavior", () => {
+    const linearKeys = ["a", "b", "c", "d", "e", "f", "g"]
+    const promoted = prepareCompounds(
+      [
+        {
+          a: "a1",
+          h: ["h1", "h2"],
+          i: ["i1", "i2", "i3", "i4", "i5"],
+          class: "compound-class",
+        },
+        {
+          a: "a1",
+          className: "compound-class-name",
+        },
+      ],
+      linearKeys,
+    )
+
+    // Adding `h` crosses the adaptive lookup threshold and `i` then uses the Map path.
+    expect(linearKeys).toEqual(["a", "b", "c", "d", "e", "f", "g", "h", "i"])
+    expect(promoted).toHaveLength(2)
+    expect(promoted[0]!.selectors.map((selector) => selector.kind)).toEqual([
+      "single",
+      "list",
+      "set",
+    ])
+    expect(promoted[0]!.classValue).toBe("compound-class")
+    expect(promoted[1]!.classNameValue).toBe("compound-class-name")
+
+    const indexedKeys = ["a", "b", "c", "d", "e", "f", "g", "h"]
+    const indexed = prepareCompounds(
+      [{ h: "h1", i: "i1", class: "indexed" }],
+      indexedKeys,
+    )
+
+    // Starting at the threshold builds the indexed lookup immediately.
+    expect(indexedKeys.at(-1)).toBe("i")
+    expect(indexed[0]!.indexes).toEqual([7, 8])
+
+    expect(matchesCompoundSelector({ kind: "single", value: "x" }, "x")).toBe(true)
+    expect(matchesCompoundSelector({ kind: "single", value: "x" }, "y")).toBe(false)
+    expect(matchesCompoundSelector({ kind: "list", values: ["x", "y"] }, "y")).toBe(true)
+    expect(matchesCompoundSelector({ kind: "list", values: ["x", "y"] }, "z")).toBe(false)
+    expect(matchesCompoundSelector({ kind: "set", values: new Set(["x", "y"]) }, "x")).toBe(true)
+    expect(matchesCompoundSelector({ kind: "set", values: new Set(["x", "y"]) }, "z")).toBe(false)
+  })
+
+  test("native composition executes static child programs and forwards explicit foreign props", () => {
+    const staticChild = cv({ base: ["static-child", { prepared: true }] })
+    const nativeParent = cv({
+      composes: staticChild,
+      variants: {
+        tone: {
+          soft: "soft",
+          hard: "hard",
+        },
+      },
+      defaults: {
+        tone: "soft",
+      },
+    })
+
+    expect(nativeParent()).toBe("static-child prepared soft")
+
+    const calls: Record<string, unknown>[] = []
+    const foreign = Object.assign(
+      (props: Record<string, unknown> = {}) => {
+        calls.push(props)
+        return String(props.tone ?? "none")
+      },
+      {
+        config: {
+          variants: { tone: { soft: "soft", hard: "hard" } },
+          defaults: { tone: "soft" },
+        },
+      },
+    )
+    const foreignParent = cv({
+      composes: foreign,
+      defaults: { tone: "soft" },
+    } as any)
+
+    expect(foreignParent({ tone: "hard" } as any)).toBe("hard")
+    expect(calls.at(-1)).toEqual({ tone: "hard" })
+  })
+
 })
