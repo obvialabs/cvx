@@ -1,22 +1,35 @@
 # Changelog
 
-## 0.1.1 - 2026-09-19
+## v0.1.2 - 2026-09-19
 
 ### Added
 
-- Add state-aware class resolvers to `cx` and `cn`, allowing callback-based `className` APIs such as Base UI to be composed directly
-- Add type inference that preserves `string` results for static inputs and returns state resolvers only when dynamic class inputs require them
-- Add support for combining multiple state-aware resolvers while inferring their shared state requirements
-- Add runtime and compile-time coverage for static, dynamic, mixed, and Base UI-compatible class composition
+* Add state-aware runtime `class` and `className` overrides to `cv` for callback-based component APIs such as Base UI ([9bb6b52](https://github.com/obvialabs/cvx/commit/9bb6b5230a7e07278fc8aaca7aba2b6704b2d4ff))
+* Add CVA-style integration support for passing callback-based `className` values directly through `buttonVariants({ ... })` ([9bb6b52](https://github.com/obvialabs/cvx/commit/9bb6b5230a7e07278fc8aaca7aba2b6704b2d4ff))
+* Add type inference that preserves static `string` results while returning state resolvers when runtime `cv` overrides require them ([9bb6b52](https://github.com/obvialabs/cvx/commit/9bb6b5230a7e07278fc8aaca7aba2b6704b2d4ff))
+* Add runtime and compile-time coverage for state-aware `cv` overrides across static, variant, composed, and Tailwind-merged execution paths ([9bb6b52](https://github.com/obvialabs/cvx/commit/9bb6b5230a7e07278fc8aaca7aba2b6704b2d4ff))
+* Add targeted production branch tests for validators, compound resolution, runtime execution, composition, and Tailwind merge edge cases ([af35d49](https://github.com/obvialabs/cvx/commit/af35d4903854545d8e4e42b048dab7e79361cc60))
 
 ### Changed
 
-* Optimize common one-to-three string `cx` calls with allocation-light fast paths to preserve flat composition performance
-* Document state-aware `cx` and `cn` usage, including callback-based `className` integration
+* Change runtime `cv` overrides to accept state-aware class inputs without making authored `base`, `variants`, or `compounds` dynamic ([9bb6b52](https://github.com/obvialabs/cvx/commit/9bb6b5230a7e07278fc8aaca7aba2b6704b2d4ff))
+* Change `cv` state-aware overrides to resolve as final class suffixes while preserving normal variant and compound resolution ([9bb6b52](https://github.com/obvialabs/cvx/commit/9bb6b5230a7e07278fc8aaca7aba2b6704b2d4ff))
+* Improve coverage reporting by excluding test helpers, fixtures, generated lookup tables, and temporary compiler artifacts while keeping production runtime files visible ([af35d49](https://github.com/obvialabs/cvx/commit/af35d4903854545d8e4e42b048dab7e79361cc60))
+* Improve coverage of previously under-tested production branches instead of excluding low-coverage runtime modules ([af35d49](https://github.com/obvialabs/cvx/commit/af35d4903854545d8e4e42b048dab7e79361cc60))
 
-### Fixed
+## v0.1.1 - 2026-09-19
 
-- *
+### Added
+
+* Add state-aware class resolvers to `cx` and `cn`, allowing callback-based `className` APIs such as Base UI to be composed directly ([004782c](https://github.com/obvialabs/cvx/commit/004782ce5f995b09404c7214762588a5284ed1c8))
+* Add type inference that preserves `string` results for static inputs and returns state resolvers only when dynamic class inputs require them ([004782c](https://github.com/obvialabs/cvx/commit/004782ce5f995b09404c7214762588a5284ed1c8))
+* Add support for combining multiple state-aware resolvers while inferring their shared state requirements ([004782c](https://github.com/obvialabs/cvx/commit/004782ce5f995b09404c7214762588a5284ed1c8))
+* Add runtime and compile-time coverage for static, dynamic, mixed, and Base UI-compatible class composition ([004782c](https://github.com/obvialabs/cvx/commit/004782ce5f995b09404c7214762588a5284ed1c8))
+
+### Changed
+
+* Optimize common one-to-three string `cx` calls with allocation-light fast paths to preserve flat composition performance ([004782c](https://github.com/obvialabs/cvx/commit/004782ce5f995b09404c7214762588a5284ed1c8))
+* Document state-aware `cx` and `cn` usage, including callback-based `className` integration ([004782c](https://github.com/obvialabs/cvx/commit/004782ce5f995b09404c7214762588a5284ed1c8))
 
 ## v0.1.0 - 2026-09-19
 

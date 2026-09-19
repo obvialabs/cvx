@@ -1,4 +1,4 @@
-import type { ClassValue } from "../../cx/types"
+import type { ClassResolver, ClassValue } from "../../cx/types"
 import type { CVComponentShape, VariantShape } from "../types"
 
 /**
@@ -172,10 +172,13 @@ export interface VariantProgram {
    * - `props` – Runtime variant selections and optional class overrides
    * - `inheritedDefaults` – Defaults inherited from a parent composition
    * - `includeClassProps` – Whether runtime `class` and `className` overrides should be appended
+   *
+   * Static overrides resolve immediately. State-aware overrides may return a
+   * resolver that receives state from the consuming component library.
    */
   render(
     props: Record<string, unknown>,
     inheritedDefaults?: Readonly<Record<string, unknown>>,
     includeClassProps?: boolean,
-  ): string
+  ): string | ClassResolver<any>
 }
