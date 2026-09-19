@@ -5,7 +5,7 @@
   "keywords"        : ["obvia", "class", "className", "variants", "css", "tailwindcss", "cva", "clsx", "tailwind-merge", "classnames", "cn", "cx", "cv"],
   "license"         : "MIT",
   "homepage"        : "https://obvia.studio/",
-  "version"         : "0.1.0",
+  "version"         : "0.1.1",
 
   "author"          : {
     "name"  : "Selçuk Çukur",
