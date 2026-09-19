@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.1 - 2026-09-19
+
+### Added
+
+- Add state-aware class resolvers to `cx` and `cn`, allowing callback-based `className` APIs such as Base UI to be composed directly
+- Add type inference that preserves `string` results for static inputs and returns state resolvers only when dynamic class inputs require them
+- Add support for combining multiple state-aware resolvers while inferring their shared state requirements
+- Add runtime and compile-time coverage for static, dynamic, mixed, and Base UI-compatible class composition
+
+### Changed
+
+* Optimize common one-to-three string `cx` calls with allocation-light fast paths to preserve flat composition performance
+* Document state-aware `cx` and `cn` usage, including callback-based `className` integration
+
+### Fixed
+
+- *
+
 ## v0.1.0 - 2026-09-19
 
 ### Added

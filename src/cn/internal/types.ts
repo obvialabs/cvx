@@ -1,4 +1,4 @@
-import type { ClassValue } from "../../cx/types"
+import type { ClassComposer, ClassValue } from "../../cx/types"
 
 /**
  * Packed lookup tables consumed by the Tailwind conflict engine
@@ -202,4 +202,4 @@ export type FreshMergeEngine = Pick<Engine, "seenBefore" | "mergeUncached">
 /**
  * Internal callable shape used by conflict-aware class composition
  */
-export type CnFunction = (...inputs: ClassValue[]) => string
+export type CnFunction = ClassComposer

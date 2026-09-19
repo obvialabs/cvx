@@ -9,7 +9,7 @@
  * @internal
  */
 
-import type { ClassValue } from "../../../cx/types"
+import type { ClassInput, ClassResolver, ClassValue } from "../../../cx/types"
 import type { CnFunction, FreshMergeEngine, MergeInput } from "../types"
 
 const resolveValue = (v: ClassValue, fullGrammar: boolean): string => {
@@ -165,9 +165,9 @@ export const wrapComposer = (
   // Falsy padding lets the same probe cover smaller arities without allocating a temporary list.
   const match3 = (
     e: ArgEntry,
-    v0: ClassValue,
-    v1: ClassValue,
-    v2: ClassValue
+    v0: ClassInput<any>,
+    v1: ClassInput<any>,
+    v2: ClassInput<any>
   ): boolean => {
     let k = 0
     if (v0) {
@@ -186,7 +186,7 @@ export const wrapComposer = (
   }
 
   // Use the generic identity path for larger arities and values that require normalization
-  const matchN = (e: ArgEntry, vals: ClassValue[]): boolean => {
+  const matchN = (e: ArgEntry, vals: ClassInput<any>[]): boolean => {
     const ea = e.a
     let k = 0
     for (let i = 0; i < vals.length; i++) {
@@ -198,7 +198,48 @@ export const wrapComposer = (
     return k === e.t
   }
 
-  const resolveArgs = (vals: ClassValue[], probed: boolean): string => {
+  /**
+   * Prepare one state-aware class composer without changing the static hot path
+   *
+   * Static inputs are normalized once when the resolver is created. Resolver
+   * inputs remain callable and are evaluated for each state supplied by the
+   * consuming component library.
+   *
+   * @internal
+   */
+  const createStatefulComposer = (
+    vals: ClassInput<any>[],
+  ): ((state: any) => string) => {
+    const prepared: Array<string | ClassResolver<any>> = new Array(vals.length)
+
+    for (let index = 0; index < vals.length; index++) {
+      const value = vals[index]
+      prepared[index] =
+        typeof value === "function"
+          ? value
+          : typeof value === "string"
+            ? value
+            : resolveValue(value, true)
+    }
+
+    return (state: any): string => {
+      const resolved: ClassValue[] = new Array(prepared.length)
+
+      for (let index = 0; index < prepared.length; index++) {
+        const value = prepared[index]
+        resolved[index] = typeof value === "function" ? value(state) : value
+      }
+
+      // Resolver return values are ClassValue-only, so this path cannot create
+      // another state callback and always resolves to the final merged string.
+      return resolveArgs(resolved, false) as string
+    }
+  }
+
+  const resolveArgs = (
+    vals: ClassInput<any>[],
+    probed: boolean,
+  ): string | ((state: any) => string) => {
     const nArgs = vals.length
     const pred = lastHit === null ? null : lastHit.n
     if (!probed) {
@@ -217,6 +258,11 @@ export const wrapComposer = (
       let v = vals[i]
       if (!v) continue
       if (typeof v !== "string") {
+        // Resolver inputs turn the whole composition into a state-aware callback.
+        // This branch lives behind the existing non-string check so all-string
+        // benchmark paths keep the same control flow as before.
+        if (typeof v === "function") return createStatefulComposer(vals)
+
         // Normalize structured class values once and keep the result available for later cache probes
         v = vals[i] = resolveValue(v as ClassValue, true)
         if (!v) continue
@@ -301,15 +347,23 @@ export const wrapComposer = (
 
   // Route a lone array through the same identity-cache path as variadic input
   // Stable element identities can then hit the same tuple cache instead of forcing whole-array treatment.
-  const mergeSingleValue = (value: ClassValue): string =>
-    Array.isArray(value)
-      ? resolveArgs(value.slice(), false)
-      : mergeString(resolveValue(value, true))
+  const mergeSingleValue = (
+    value: ClassInput<any>,
+  ): string | ((state: any) => string) =>
+    typeof value === "function"
+      ? createStatefulComposer([value])
+      : Array.isArray(value)
+        ? resolveArgs(value.slice(), false)
+        : mergeString(resolveValue(value, true))
 
   // Keep the first three values as named parameters so the common path uses direct register reads
   // `arguments` remains available for arity detection and the uncommon 4+ path. Two arguments share the
   // three-argument probe because an absent third value behaves like the other falsy padding values.
-  return function (v0?: ClassValue, v1?: ClassValue, v2?: ClassValue): string {
+  return function (
+    v0?: ClassInput<any>,
+    v1?: ClassInput<any>,
+    v2?: ClassInput<any>,
+  ): string | ((state: any) => string) {
     const nArgs = arguments.length
     if ((nArgs | 1) === 3) {
       // Handle the dominant two- and three-argument forms without materializing an argument array
@@ -369,7 +423,7 @@ export const wrapComposer = (
         if (ok && k === lh.t) return lh.r
       }
     }
-    const vals: ClassValue[] = []
+    const vals: ClassInput<any>[] = []
     for (let i = 0; i < nArgs; i++) vals.push(arguments[i])
     return resolveArgs(vals, true)
   } as CnFunction
